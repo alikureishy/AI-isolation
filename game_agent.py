@@ -7,6 +7,7 @@ You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
 import random
+from scipy.stats._continuous_distns import beta
 
 
 class Timeout(Exception):
@@ -36,10 +37,18 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
+    if game.is_loser(player):
+        return float("-inf")
 
-    # TODO: finish this function!
-    raise NotImplementedError
+    if game.is_winner(player):
+        return float("inf")
 
+    own_moves = game.get_legal_moves(player)
+    opp_moves = game.get_legal_moves(game.get_opponent(player))
+    if game.active_player == player:
+        return float(len(own_moves) - len(opp_moves))
+    else: # It' the opponent's turn, so revise the options a bit
+        return float(len([x for x in own_moves if x not in opp_moves]) - len(opp_moves))
 
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
@@ -117,26 +126,45 @@ class CustomPlayer:
         """
 
         self.time_left = time_left
-
-        # TODO: finish this function!
+        
+        options = game.get_legal_moves()
+        assert options == legal_moves, "Mismatched moves"
+#         print ("\n{}\t\t{}".format(legal_moves, options))
 
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
 
+        _, move = None, None
         try:
-            # The search method call (alpha beta or minimax) should happen in
-            # here in order to avoid timeout. The try/except block will
-            # automatically catch the exception raised by the search method
-            # when the timer gets close to expiring
-            pass
-
+            if self.iterative:
+                depth, reachedleaf = 0, False
+                while not reachedleaf:
+                    score, move = self.dosearch(game, depth)
+                    print ("Score: {}, Move: {}, Depth: {}".format(score, move, depth))
+                    if score == float('inf') or score == float('-inf'):
+#                         print ("Reached leaves. Aborting iteration!")
+                        reachedleaf = True
+                    if self.time_left() < 2*self.TIMER_THRESHOLD:
+#                         print ("Reached time limit. Aborting iteration!")
+                        break
+                    depth += 1
+            else:
+                _, move = self.dosearch(game, self.search_depth)
         except Timeout:
             # Handle any actions required at timeout, if necessary
             pass
 
-        # Return the best move from the last completed search iteration
-        raise NotImplementedError
+        # Return the best move from the last completed search
+        # (or iterative-deepening search iteration)
+#         print ("Returning: {}".format(move))
+        return move
+    
+    def dosearch(self, game, depth):
+        if self.method == 'minimax':
+            return self.minimax(game, depth)
+        else: # alphabeta
+            return self.alphabeta(game, depth)
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -172,8 +200,19 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        legal_moves = game.get_legal_moves(game.active_player)
+        if legal_moves and len(legal_moves)>0:
+            if depth>0: # Recursive case:
+                if maximizing_player:
+                    score, move = max([(self.minimax(game.forecast_move(m), depth-1, maximizing_player=False)[0], m) for m in legal_moves])
+                else:
+                    score, move = min([(self.minimax(game.forecast_move(m), depth-1, maximizing_player=True)[0], m) for m in legal_moves])
+            else: # Base case (depth==0)
+                return self.score(game, self), []
+        else:
+            score, move = float('-inf'), (-1, -1)
+            
+        return score, move
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -216,5 +255,40 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        legal_moves = game.get_legal_moves(game.active_player)
+        if legal_moves and len(legal_moves)>0:
+            if depth>0: # Recursive case:
+                floor = alpha
+                ceiling = beta
+#                 print ("\tALPHABETA: (({})) {} < score < {}".format(depth, floor, ceiling))
+                if maximizing_player:   # MAXIMIZING ply
+                    score, move = floor, None
+                    for i,m in enumerate(legal_moves):
+                        newscore, newmove = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player)
+                        if newmove is None:
+                            continue
+                        if (move is None and newscore >= score) or (newscore > score):
+                            floor, score, move = newscore, newscore, m
+#                             print ("\t\tMAXIMIZER (({})): Increased floor ==> {} for siblings after {}".format(depth, floor, i))
+                        if score > ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
+#                             print ("\t\tMAXIMIZER (({})): Pruned siblings after: {} because ceiling: {} already crossed".format(depth, i, ceiling))
+                            break
+                else:                   # MINIMIZING ply
+                    score, move = ceiling, None
+                    for i,m in enumerate(legal_moves):
+                        newscore, newmove = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player)
+                        if newmove is None:
+                            continue
+                        if (move is None and newscore <= score) or (newscore < score):
+                            ceiling, score, move = newscore, newscore, m
+#                             print ("\t\tMINIMZER (({})): Reduced ceiling ==> {} for siblings after {}".format(depth, ceiling, i)) 
+                        if score < floor: # No need to search any more if we've crossed the lower limit at this min layer already
+#                             print ("\t\tMINIMIZER (({})): Pruned siblings after: {} because floor: {} already crossed".format(depth, i, floor))
+                            break
+            else: # Base case (depth==0)
+                score, move = self.score(game, self), []
+        else:
+            score, move = float('-inf'), (-1, -1)
+
+        print ("\tALPHABETA: (({})) Returning {}, {}".format(depth, score, move))
+        return score, move
