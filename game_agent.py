@@ -138,13 +138,13 @@ class CustomPlayer:
         _, move = None, None
         try:
             if self.iterative:
-                depth, reachedleaf = 0, False
+                depth, reachedleaf = 1, False
                 while not reachedleaf:
                     score, move = self.dosearch(game, depth)
                     print ("Score: {}, Move: {}, Depth: {}".format(score, move, depth))
-                    if score == float('inf') or score == float('-inf'):
+#                     if score == float('inf') or score == float('-inf'):
 #                         print ("Reached leaves. Aborting iteration!")
-                        reachedleaf = True
+#                         reachedleaf = True
                     if self.time_left() < 2*self.TIMER_THRESHOLD:
 #                         print ("Reached time limit. Aborting iteration!")
                         break
@@ -161,12 +161,16 @@ class CustomPlayer:
         return move
     
     def dosearch(self, game, depth):
+        print ()
         if self.method == 'minimax':
             return self.minimax(game, depth)
         else: # alphabeta
-            return self.alphabeta(game, depth)
+            _, mm_m = self.minimax(game, depth)
+            ab_s, ab_m = self.alphabeta(game, depth)
+            assert ab_m==mm_m, "Minimax/Alphabeta moves must match: {} != {}".format(mm_m, ab_m)
+            return ab_s, ab_m
 
-    def minimax(self, game, depth, maximizing_player=True):
+    def minimax(self, game, depth, maximizing_player=True, tab='\t'):
         """Implement the minimax search algorithm as described in the lectures.
 
         Parameters
@@ -204,17 +208,25 @@ class CustomPlayer:
         if legal_moves and len(legal_moves)>0:
             if depth>0: # Recursive case:
                 if maximizing_player:
-                    score, move = max([(self.minimax(game.forecast_move(m), depth-1, maximizing_player=False)[0], m) for m in legal_moves])
+                    print (tab + "MAXIMIZING: (({})) || Moves: {}".format(depth, legal_moves))
+                    score, move = max([(self.minimax(game.forecast_move(m), depth-1, maximizing_player=False, tab=tab+'\t')[0], m) for m in legal_moves])
                 else:
-                    score, move = min([(self.minimax(game.forecast_move(m), depth-1, maximizing_player=True)[0], m) for m in legal_moves])
+                    print (tab + "MINIMIZING: (({})) || Moves: {}".format(depth, legal_moves))
+                    score, move = min([(self.minimax(game.forecast_move(m), depth-1, maximizing_player=True, tab=tab+'\t')[0], m) for m in legal_moves])
             else: # Base case (depth==0)
-                return self.score(game, self), []
+                if maximizing_player:
+                    print (tab + "(BASE) MAXIMIZING: (({})) ||  Moves: {}".format(depth, legal_moves))
+                else:
+                    print (tab + "(BASE) MINIMIZING: (({})) ||  Moves: {}".format(depth, legal_moves))
+                score, move = self.score(game, self), None
         else:
+            print (tab + "DEAD-END: (({})) ||  Moves: {}".format(depth, legal_moves))
             score, move = float('-inf'), (-1, -1)
             
+        print (tab + "(({})) Returning {}, {}".format(depth, score, move if move is not None else "-leaf-"))
         return score, move
 
-    def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
+    def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True, tab='\t'):
         """Implement minimax search with alpha-beta pruning as described in the
         lectures.
 
@@ -255,40 +267,56 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
+        floor = alpha
+        ceiling = beta
         legal_moves = game.get_legal_moves(game.active_player)
         if legal_moves and len(legal_moves)>0:
             if depth>0: # Recursive case:
-                floor = alpha
-                ceiling = beta
-#                 print ("\tALPHABETA: (({})) {} < score < {}".format(depth, floor, ceiling))
                 if maximizing_player:   # MAXIMIZING ply
-                    score, move = floor, None
+                    print (tab + "MAXIMIZING: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
+                    score, move = floor, (-1, -1)
                     for i,m in enumerate(legal_moves):
-                        newscore, newmove = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player)
-                        if newmove is None:
-                            continue
-                        if (move is None and newscore >= score) or (newscore > score):
-                            floor, score, move = newscore, newscore, m
-#                             print ("\t\tMAXIMIZER (({})): Increased floor ==> {} for siblings after {}".format(depth, floor, i))
-                        if score > ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
-#                             print ("\t\tMAXIMIZER (({})): Pruned siblings after: {} because ceiling: {} already crossed".format(depth, i, ceiling))
-                            break
+                        newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player, tab=tab+'\t')
+                        if newscore:
+                            if newscore > score:
+                                score, floor, move = newscore, newscore, m
+                                print (tab + "\tMove {} (Idx: {}): Increased floor ==> {} for remaining siblings".format(m, i, floor))
+                            if score > ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
+                                print (tab + "\tMove {} (Idx: {}): Dropping self because ceiling: {} already crossed".format(m, i, ceiling))
+                                score, move = None, (-1,-1)
+                                break
+                        else:
+                            print (tab + "\tMove {} (Idx: {}): Dropping branch".format(m, i))
                 else:                   # MINIMIZING ply
-                    score, move = ceiling, None
+                    print (tab + "MINIMIZING: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
+                    score, move = ceiling, (-1, -1)
                     for i,m in enumerate(legal_moves):
-                        newscore, newmove = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player)
-                        if newmove is None:
-                            continue
-                        if (move is None and newscore <= score) or (newscore < score):
-                            ceiling, score, move = newscore, newscore, m
-#                             print ("\t\tMINIMZER (({})): Reduced ceiling ==> {} for siblings after {}".format(depth, ceiling, i)) 
-                        if score < floor: # No need to search any more if we've crossed the lower limit at this min layer already
-#                             print ("\t\tMINIMIZER (({})): Pruned siblings after: {} because floor: {} already crossed".format(depth, i, floor))
-                            break
+                        newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player, tab=tab+'\t')
+                        if newscore:
+                            if newscore < score:
+                                score, ceiling, move = newscore, newscore, m
+                                print (tab + "\tMove {} (Idx: {}): Reduced ceiling ==> {} for remaining siblings".format(m, i, ceiling))
+                            if score < floor: # No need to search any more if we've crossed the lower limit at this min layer already
+                                print (tab + "\tMove {} (Idx: {}): Dropping self because floor: {} already crossed".format(m, i, floor))
+                                score, move = None, (-1,-1)
+                                break
+                        else:
+                            print (tab + "\tMove {} (Idx: {}): Dropping branch".format(m, i))
             else: # Base case (depth==0)
-                score, move = self.score(game, self), []
+                score, move = self.score(game, self), None
+                if maximizing_player:
+                    print (tab + "(BASE) MAXIMIZING: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
+                    if score > ceiling:
+                        print (tab + "\t\tDropping self since score {} > ceiling {}".format(score, ceiling))
+                        score, move = None, (-1,-1)
+                else:
+                    print (tab + "(BASE) MINIMIZING: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
+                    if score < floor:
+                        print (tab + "\t\tDropping self since score {} < floor {}".format(score, floor))
+                        score, move = None, (-1,-1)
         else:
+            print (tab + "DEAD-END: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
             score, move = float('-inf'), (-1, -1)
 
-        print ("\tALPHABETA: (({})) Returning {}, {}".format(depth, score, move))
+        print (tab + "(({})) Returning {}, {}".format(depth, score, move if move is not None else "-leaf-"))
         return score, move
