@@ -136,25 +136,32 @@ class CustomPlayer:
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
 
-        _, move = None, None
-        try:
-            if self.iterative:
-                depth, reachedleaf = 1, False
-                while not reachedleaf:
-                    score, move = self.dosearch(game, depth)
-#                     print ("Score: {}, Move: {}, Depth: {}".format(score, move, depth))
-#                     if score == float('inf') or score == float('-inf'):
-#                         print ("Reached leaves. Aborting iteration!")
-#                         reachedleaf = True
-                    if self.time_left() < 2*self.TIMER_THRESHOLD:
-#                         print ("Reached time limit. Aborting iteration!")
-                        break
-                    depth += 1
-            else:
-                _, move = self.dosearch(game, self.search_depth)
-        except Timeout:
-            # Handle any actions required at timeout, if necessary
-            pass
+        score, move = None, None
+        if len(options) == 1:
+            move = options[0]
+        else:
+            try:
+                if self.iterative:
+                    depth, reachedleaf = 1, False
+                    while not reachedleaf:
+                        score, move = self.dosearch(game, depth)
+    #                     print ("Score: {}, Move: {}, Depth: {}".format(score, move, depth))
+    #                     if score == float('inf') or score == float('-inf'):
+    #                         print ("Reached leaves. Aborting iteration!")
+    #                         reachedleaf = True
+                        if self.time_left() < 2*self.TIMER_THRESHOLD:
+    #                         print ("Reached time limit. Aborting iteration!")
+                            break
+                        depth += 1
+                else:
+                    score, move = self.dosearch(game, self.search_depth)
+            except Timeout:
+                # Handle any actions required at timeout, if necessary
+                pass
+
+        if len (options) > 0:
+            assert not (move is None or move is (-1,-1)), "Move ({}, {}) cannot be None or (-1,-1) if options ({}) exist".format(move, score, options)
+            assert move in options, "Move ({}, {}) not from existing list of moves ({})".format(move, score, options)
 
         # Return the best move from the last completed search
         # (or iterative-deepening search iteration)

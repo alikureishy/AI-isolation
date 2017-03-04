@@ -20,8 +20,8 @@ BLUE = (0,0,255)
 BROWN = (165,42,42)
  
 # This sets the WIDTH and HEIGHT of each grid location
-WIDTH = 40
-HEIGHT = 40
+WIDTH = 60
+HEIGHT = 60
  
 # This sets the margin between each cell
 MARGIN = 10
