@@ -160,8 +160,8 @@ class CustomPlayer:
                 pass
 
         if len (options) > 0:
-            assert not (move is None or move is (-1,-1)), "Move ({}, {}) cannot be None or (-1,-1) if options ({}) exist".format(move, score, options)
-            assert move in options, "Move ({}, {}) not from existing list of moves ({})".format(move, score, options)
+            assert not (move is None or move is (-1,-1)), "Move ({}, {}) for '{}' cannot be None or (-1,-1) if options ({}) exist".format(move, score, self.method, options)
+            assert move in options, "Move ({}, {}) for '{}' not from existing list of moves ({})".format(move, score, self.method, options)
 
         # Return the best move from the last completed search
         # (or iterative-deepening search iteration)
@@ -219,17 +219,17 @@ class CustomPlayer:
             if depth>0: # Recursive case:
                 if maximizing_player:   # MAXIMIZING ply
 #                     print (tab + "MAXIMIZING: (({})) ||  Moves: {}".format(depth, legal_moves))
-                    score, move = floor, (-1, -1)
+                    score, move = floor, None
                     for i,m in enumerate(legal_moves):
                         newscore, _ = self.minimax(game.forecast_move(m), depth-1, maximizing_player=not maximizing_player, tab=tab+'\t')
-                        if newscore > score:
+                        if (move is None and newscore == score) or newscore > score:
                             score, move = newscore, m
                 else:                   # MINIMIZING ply
 #                     print (tab + "MINIMIZING: (({})) ||  Moves: {}".format(depth, legal_moves))
-                    score, move = ceiling, (-1, -1)
+                    score, move = ceiling, None
                     for i,m in enumerate(legal_moves):
                         newscore, _ = self.minimax(game.forecast_move(m), depth-1, maximizing_player=not maximizing_player, tab=tab+'\t')
-                        if newscore < score:
+                        if (move is None and newscore == score) or newscore < score:
                             score, move = newscore, m
             else: # Base case (depth==0)
                 score, move = self.score(game, self), None
@@ -289,11 +289,11 @@ class CustomPlayer:
             if depth>0: # Recursive case:
                 if maximizing_player:   # MAXIMIZING ply
 #                     print (tab + "MAXIMIZING: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
-                    score, move = floor, (-1, -1)
+                    score, move = floor, None
                     for i,m in enumerate(legal_moves):
                         newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player, tab=tab+'\t')
                         if newscore is not None:
-                            if newscore > score:
+                            if (move is None and newscore == score) or newscore > score:
                                 score, floor, move = newscore, newscore, m
 #                                 print (tab + "\tMove {} (Idx: {}): Increased floor ==> {} for remaining siblings".format(m, i, floor))
                             if score >= ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
@@ -305,11 +305,11 @@ class CustomPlayer:
                             pass
                 else:                   # MINIMIZING ply
 #                     print (tab + "MINIMIZING: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
-                    score, move = ceiling, (-1, -1)
+                    score, move = ceiling, None
                     for i,m in enumerate(legal_moves):
                         newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player, tab=tab+'\t')
                         if newscore is not None:
-                            if newscore < score:
+                            if (move is None and newscore == score) or newscore < score:
                                 score, ceiling, move = newscore, newscore, m
 #                                 print (tab + "\tMove {} (Idx: {}): Reduced ceiling ==> {} for remaining siblings".format(m, i, ceiling))
                             if score <= floor: # No need to search any more if we've crossed the lower limit at this min layer already

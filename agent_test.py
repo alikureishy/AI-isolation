@@ -476,6 +476,31 @@ class Project1Test(unittest.TestCase):
             self.assertIn(move, first_branch, WRONG_MOVE.format(
                 method, test_depth, first_branch, move))
 
+    @timeout(2000)
+    # @unittest.skip("Skip minimax/alpha-beta equivalence test.")  # Uncomment this line to skip test
+    def test_minimax_alphabeta_equivalence(self):
+        """ Test CustomPlayer.alphabeta
+
+        This test ensures that the steps offered by minimax and alphabeta
+        are identical for any given search depth setting and any identical
+        sequence of moves.
+        """
+        h, w = 101, 101  # board size
+        starting_location = (50, 50)
+        adversary_location = (0, 0)  # top left corner
+        iterative_search = False
+        method = "alphabeta"
+
+        # The agent under test starts at a random location on a huge board so that
+        # every branch has the same number of possible moves, so pruning any
+        # branch has the same effect during testing. The test follows the outputs
+        # of minimax and alphabeta to play the board game in parallel until the
+        # end, comparing the subsequent moves suggested by both minimax and alphabeta
+        # at every step. If both games end without vialating this invariance, the test
+        # has passed.
+        for idx in range(len(10)):
+            pass
+
 
     @timeout(20)
     # @unittest.skip("Skip iterative deepening test.")  # Uncomment this line to skip test
