@@ -296,9 +296,9 @@ class CustomPlayer:
                             if (move is None and newscore == score) or newscore > score:
                                 score, floor, move = newscore, newscore, m
 #                                 print (tab + "\tMove {} (Idx: {}): Increased floor ==> {} for remaining siblings".format(m, i, floor))
-                            if score >= ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
+                            if score > ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
 #                                 print (tab + "\tMove {} (Idx: {}): Dropping self because ceiling: {} already crossed".format(m, i, ceiling))
-                                score, move = None, (-1,-1)
+                                score, move = None, None
                                 break
                         else:
 #                             print (tab + "\tMove {} (Idx: {}): Dropping branch".format(m, i))
@@ -312,9 +312,9 @@ class CustomPlayer:
                             if (move is None and newscore == score) or newscore < score:
                                 score, ceiling, move = newscore, newscore, m
 #                                 print (tab + "\tMove {} (Idx: {}): Reduced ceiling ==> {} for remaining siblings".format(m, i, ceiling))
-                            if score <= floor: # No need to search any more if we've crossed the lower limit at this min layer already
+                            if score < floor: # No need to search any more if we've crossed the lower limit at this min layer already
 #                                 print (tab + "\tMove {} (Idx: {}): Dropping self because floor: {} already crossed".format(m, i, floor))
-                                score, move = None, (-1,-1)
+                                score, move = None, None
                                 break
                         else:
 #                             print (tab + "\tMove {} (Idx: {}): Dropping branch".format(m, i))
@@ -325,11 +325,11 @@ class CustomPlayer:
                 if maximizing_player:
                     if score > ceiling:
 #                         print (tab + "\t\tDropping self since score {} > ceiling {}".format(score, ceiling))
-                        score, move = None, (-1,-1)
+                        score, move = None, None
                 else:
                     if score < floor:
 #                         print (tab + "\t\tDropping self since score {} < floor {}".format(score, floor))
-                        score, move = None, (-1,-1)
+                        score, move = None, None
         else:
 #             print (tab + "DEAD-END: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
             score, move = float('-inf'), (-1, -1)
