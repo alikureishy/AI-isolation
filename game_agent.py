@@ -142,7 +142,7 @@ class CustomPlayer:
                 depth, reachedleaf = 1, False
                 while not reachedleaf:
                     score, move = self.dosearch(game, depth)
-                    print ("Score: {}, Move: {}, Depth: {}".format(score, move, depth))
+#                     print ("Score: {}, Move: {}, Depth: {}".format(score, move, depth))
 #                     if score == float('inf') or score == float('-inf'):
 #                         print ("Reached leaves. Aborting iteration!")
 #                         reachedleaf = True
@@ -166,9 +166,9 @@ class CustomPlayer:
         if self.method == 'minimax':
             return self.minimax(game, depth)
         else: # alphabeta
-            _, mm_m = self.minimax(game, depth)
+#             _, mm_m = self.minimax(game, depth)
             ab_s, ab_m = self.alphabeta(game, depth)
-            assert ab_m==mm_m, "Minimax/Alphabeta moves must match: {} != {}".format(mm_m, ab_m)
+#             assert ab_m==mm_m, "Minimax/Alphabeta moves must match: {} != {}".format(mm_m, ab_m)
             return ab_s, ab_m
 
     def minimax(self, game, depth, maximizing_player=True, tab='\t'):
