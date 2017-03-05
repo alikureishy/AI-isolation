@@ -136,32 +136,30 @@ class CustomPlayer:
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
 
-        score, move = None, None
-        if len(options) == 1:
-            move = options[0]
-        else:
-            try:
-                if self.iterative:
-                    depth, reachedleaf = 1, False
-                    while not reachedleaf:
-                        score, move = self.dosearch(game, depth)
-    #                     print ("Score: {}, Move: {}, Depth: {}".format(score, move, depth))
-    #                     if score == float('inf') or score == float('-inf'):
-    #                         print ("Reached leaves. Aborting iteration!")
-    #                         reachedleaf = True
-                        if self.time_left() < 2*self.TIMER_THRESHOLD:
-    #                         print ("Reached time limit. Aborting iteration!")
-                            break
-                        depth += 1
-                else:
-                    score, move = self.dosearch(game, self.search_depth)
-            except Timeout:
-                # Handle any actions required at timeout, if necessary
-                pass
-
-        if len (options) > 0:
-            assert not (move is None or move is (-1,-1)), "Move ({}, {}) for '{}' cannot be None or (-1,-1) if options ({}) exist".format(move, score, self.method, options)
-            assert move in options, "Move ({}, {}) for '{}' not from existing list of moves ({})".format(move, score, self.method, options)
+        score, move = None, legal_moves[0] if len(legal_moves) > 0 else None
+        try:
+            if self.iterative is True:
+                depth, reachedleaf = 1, False
+                while not reachedleaf:
+                    score, move = self.dosearch(game, depth)
+#                     print ("Score: {}, Move: {}, Depth: {}".format(score, move, depth))
+#                     if score == float('inf') or score == float('-inf'):
+#                         print ("Reached leaves. Aborting iteration!")
+#                         reachedleaf = True
+                    if self.time_left() < 2*self.TIMER_THRESHOLD:
+#                         print ("Reached time limit. Aborting iteration!")
+                        break
+                    depth += 1
+            else:
+                score, move = self.dosearch(game, self.search_depth)
+                assert score is not None
+                
+            if len (options) > 0:
+                assert not (move is None or move is (-1,-1)), "Move ({}, {}) for '{}/{}' cannot be None or (-1,-1) if options ({}) exist".format(move, score, self.method, self.score_fn, options)
+                assert move in options, "Move ({}, {}) for '{}/{}' not from existing list of moves ({})".format(move, score, self.method, self.score_fn, options)
+        except Timeout:
+            # Handle any actions required at timeout, if necessary
+            pass
 
         # Return the best move from the last completed search
         # (or iterative-deepening search iteration)
@@ -171,7 +169,8 @@ class CustomPlayer:
     def dosearch(self, game, depth):
 #         print ()
         if self.method == 'minimax':
-            return self.minimax(game, depth)
+            mm_s, mm_m = self.minimax(game, depth)
+            return mm_s, mm_m
         else: # alphabeta
 #             _, mm_m = self.minimax(game, depth)
             ab_s, ab_m = self.alphabeta(game, depth)
@@ -298,7 +297,7 @@ class CustomPlayer:
 #                                 print (tab + "\tMove {} (Idx: {}): Increased floor ==> {} for remaining siblings".format(m, i, floor))
                             if score > ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
 #                                 print (tab + "\tMove {} (Idx: {}): Dropping self because ceiling: {} already crossed".format(m, i, ceiling))
-                                score, move = None, None
+#                                 score, move = None, None
                                 break
                         else:
 #                             print (tab + "\tMove {} (Idx: {}): Dropping branch".format(m, i))
@@ -314,7 +313,7 @@ class CustomPlayer:
 #                                 print (tab + "\tMove {} (Idx: {}): Reduced ceiling ==> {} for remaining siblings".format(m, i, ceiling))
                             if score < floor: # No need to search any more if we've crossed the lower limit at this min layer already
 #                                 print (tab + "\tMove {} (Idx: {}): Dropping self because floor: {} already crossed".format(m, i, floor))
-                                score, move = None, None
+#                                 score, move = None, None
                                 break
                         else:
 #                             print (tab + "\tMove {} (Idx: {}): Dropping branch".format(m, i))
@@ -322,14 +321,6 @@ class CustomPlayer:
             else: # Base case (depth==0)
                 score, move = self.score(game, self), None
 #                 print (tab + "(BASE): (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
-                if maximizing_player:
-                    if score > ceiling:
-#                         print (tab + "\t\tDropping self since score {} > ceiling {}".format(score, ceiling))
-                        score, move = None, None
-                else:
-                    if score < floor:
-#                         print (tab + "\t\tDropping self since score {} < floor {}".format(score, floor))
-                        score, move = None, None
         else:
 #             print (tab + "DEAD-END: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
             score, move = float('-inf'), (-1, -1)
