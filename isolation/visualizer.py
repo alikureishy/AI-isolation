@@ -65,7 +65,6 @@ class Visualizer(object):
          
         # Save the moves of the game
         self.moves = sum(moves, [])
-        assert len(self.moves) > 2, "No moves exist in the moves list"
         
         # Set row 1, cell 5 to one. (Remember rows and
         # column numbers start at zero.)
@@ -127,7 +126,7 @@ class Visualizer(object):
                 if event.type == pygame.QUIT:  # If user clicked close
                     self.done = True  # Flag that we are done so we exit this loop
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if idx == len(self.moves):
+                    if idx >= len(self.moves):
                         self.clock.tick(300)
                         continue
                     nextmove = self.moves[idx]
