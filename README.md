@@ -73,7 +73,65 @@ The entry point into the game playing intelligence is through the 'get_moves()' 
         """
 ```
 
-####
+#### Adversarial Search Agent
+
+This game playing agent uses adversarial search to determine the next best move to return when its get_move() api is invoked. Various aspects of adversarial search are discussed below.
+
+##### Game Tree Traversal
+
+Adversarial search involves building a game tree for the current state of the board, given the available next moves, and evaluating each subtree (branch) recursively while 'simulating' the progress of the game for each of the move options provided, until a configurable depth has been reached.
+
+There are two traversal mechanisms that have been implemented.
+
+###### Minimax Traversal
+
+With minimax, at each node, the recursive operation performed is as follows:
+- Determine the available moves from the game board
+- If we have reached the requisite depth or if there are no moves available:
+-- Evaluate the board wrt this agent
+-- Select that score
+- Otherwise:
+-- For each available move:
+--- Create a copy of the board
+--- Apply the move to this copy
+--- Invoke the same recursive traversal on the new copy
+--- If the given level (ply) of the tree is the present agent's move:
+---- Select the move/branch that returns the highest score
+--- Else:
+---- Select the move/branch that returns the lowest score
+--- Return the score selected above
+
+###### Alphabeta traversal
+
+Alpha-beta traversal is an optimization of minimax wherein branches are only explored if they contribute some useful information to the score determination. Branches that yield no useful information are pruned out, thereby avoiding unnecessary traversal overhead. This pruning is achieved by continuously updating an acceptable range for the game tree. Any branches that will yield a score that is outside this range are discarded. The algorithm proceeds just like minimax, with the following added logic:
+
+Start with an initial score range of (-inifinity, +infinity). Then:
+- At each node:
+-- For each branch at this node:
+--- If it is a maximizing node:
+---- If a child exists whose output is higher than the upper limit of the range
+----- Skip this branch and return immediately
+---- Else:
+----- If the child is lower than the previous upper bound:
+------ Update the upper bound to reflect this new lowered upper-bound
+--- Else:
+---- If a child exists whose output is lower than the lower limit of the range
+----- Skip this branch and return immediately
+---- Else:
+----- If the child is higher than the previous lower bound:
+------ Update the lower bound to reflect this new increased lower-bound
+
+With alpha-beta traversal, we are guaranteed the same outcome as minimax, yet without the overhead of exploring every game tree branch.
+
+##### Iterative Deepening
+
+
+
+###### Quiessant search
+
+##### Board Evaluation Function
+
+
 
 ### Tournament
 
