@@ -9,6 +9,7 @@ relative strength using tournament.py and include the results in your report.
 import random
 from scipy.stats._continuous_distns import beta
 import logging
+from collections import deque
 
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
@@ -136,20 +137,19 @@ class CustomPlayer:
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
 
-        score, move = None, legal_moves[0] if len(legal_moves) > 0 else None
+        score, move = None, random.choice(legal_moves) if len(legal_moves) > 0 else None
         try:
+            # Iterative deepening with Quiessance search:
             if self.iterative is True:
-                depth, reachedleaf = 1, False
-                while not reachedleaf:
+                results = deque(maxlen=3)
+                for depth in range (self.search_depth, 25):
                     score, move = self.dosearch(game, depth)
-#                     print ("Score: {}, Move: {}, Depth: {}".format(score, move, depth))
-#                     if score == float('inf') or score == float('-inf'):
-#                         print ("Reached leaves. Aborting iteration!")
-#                         reachedleaf = True
-                    if self.time_left() < 2*self.TIMER_THRESHOLD:
-#                         print ("Reached time limit. Aborting iteration!")
+                    results.append((score, move))
+                    if len(results) >=3 and all(x[1] == move for x in results):
+#                         print ("Quiessance at depth: {} with move {}".format(depth, (score, move)))
                         break
-                    depth += 1
+                    if self.time_left() < 2*self.TIMER_THRESHOLD:
+                        break
             else:
                 score, move = self.dosearch(game, self.search_depth)
                 assert score is not None
@@ -158,6 +158,7 @@ class CustomPlayer:
                 assert not (move is None or move is (-1,-1)), "Move ({}, {}) for '{}/{}' cannot be None or (-1,-1) if options ({}) exist".format(move, score, self.method, self.score_fn, options)
                 assert move in options, "Move ({}, {}) for '{}/{}' not from existing list of moves ({})".format(move, score, self.method, self.score_fn, options)
         except Timeout:
+#             print (".")
             # Handle any actions required at timeout, if necessary
             pass
 
@@ -235,7 +236,7 @@ class CustomPlayer:
 #                 print (tab + "(BASE): (({})) ||  Moves: {}".format(depth, legal_moves))
         else:
 #             print (tab + "DEAD-END: (({})) ||  Moves: {}".format(depth, legal_moves))
-            score, move = float('-inf'), (-1, -1)
+            score, move = self.score(game, self), (-1, -1)
 
 #         print (tab + "(({})) Returning {}, {}".format(depth, score, move if move is not None else "-leaf-"))
         return score, move
@@ -323,7 +324,7 @@ class CustomPlayer:
 #                 print (tab + "(BASE): (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
         else:
 #             print (tab + "DEAD-END: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
-            score, move = float('-inf'), (-1, -1)
+            score, move = self.score(game, self), (-1, -1)
 
 #         print (tab + "(({})) Returning {}, {}".format(depth, score, move if move is not None else "-leaf-"))
         return score, move
