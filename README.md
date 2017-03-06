@@ -86,50 +86,93 @@ There are two traversal mechanisms that have been implemented.
 ###### Minimax Traversal
 
 With minimax, at each node, the recursive operation performed is as follows:
-- Determine the available moves from the game board
-- If we have reached the requisite depth or if there are no moves available:
--- Evaluate the board wrt this agent
--- Select that score
-- Otherwise:
--- For each available move:
---- Create a copy of the board
---- Apply the move to this copy
---- Invoke the same recursive traversal on the new copy
---- If the given level (ply) of the tree is the present agent's move:
----- Select the move/branch that returns the highest score
---- Else:
----- Select the move/branch that returns the lowest score
---- Return the score selected above
+
+```
+def minimax(self, game, depth, maximizing_player=True):
+    ...
+    ...
+    ...
+    floor = float('-inf')
+    ceiling = float('+inf')
+    legal_moves = game.get_legal_moves(game.active_player)
+    if legal_moves and len(legal_moves)>0:
+        if depth>0: # Recursive case:
+            if maximizing_player:   # MAXIMIZING ply
+                score, move = floor, None
+                for i,m in enumerate(legal_moves):
+                    newscore, _ = self.minimax(game.forecast_move(m), depth-1, maximizing_player=not maximizing_player)
+                    if (move is None and newscore == score) or newscore > score:
+                        score, move = newscore, m
+            else:                   # MINIMIZING ply
+                score, move = ceiling, None
+                for i,m in enumerate(legal_moves):
+                    newscore, _ = self.minimax(game.forecast_move(m), depth-1, maximizing_player=not maximizing_player)
+                    if (move is None and newscore == score) or newscore < score:
+                        score, move = newscore, m
+        else: # Base case (depth==0)
+            score, move = self.score(game, self), None
+    else:
+        score, move = self.score(game, self), (-1, -1)
+    return score, move
+```
 
 ###### Alphabeta traversal
 
 Alpha-beta traversal is an optimization of minimax wherein branches are only explored if they contribute some useful information to the score determination. Branches that yield no useful information are pruned out, thereby avoiding unnecessary traversal overhead. This pruning is achieved by continuously updating an acceptable range for the game tree. Any branches that will yield a score that is outside this range are discarded. The algorithm proceeds just like minimax, with the following added logic:
 
-Start with an initial score range of (-inifinity, +infinity). Then:
-- At each node:
--- For each branch at this node:
---- If it is a maximizing node:
----- If a child exists whose output is higher than the upper limit of the range
------ Skip this branch and return immediately
----- Else:
------ If the child is lower than the previous upper bound:
------- Update the upper bound to reflect this new lowered upper-bound
---- Else:
----- If a child exists whose output is lower than the lower limit of the range
------ Skip this branch and return immediately
----- Else:
------ If the child is higher than the previous lower bound:
------- Update the lower bound to reflect this new increased lower-bound
+```
+def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True, tab='\t'):
+    ...
+    ...
+    ...
+    floor = alpha
+    ceiling = beta
+    legal_moves = game.get_legal_moves(game.active_player)
+    if legal_moves and len(legal_moves)>0:
+        if depth>0: # Recursive case:
+            if maximizing_player:   # MAXIMIZING ply
+                score, move = floor, None
+                for i,m in enumerate(legal_moves):
+                    newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player)
+                    if newscore is not None:
+                        if (move is None and newscore == score) or newscore > score:
+                            score, floor, move = newscore, newscore, m
+                        if score > ceiling: # Prune: Crossed the upper limit at this max layer already
+                            break
+            else:                   # MINIMIZING ply
+                score, move = ceiling, None
+                for i,m in enumerate(legal_moves):
+                    newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player)
+                    if newscore is not None:
+                        if (move is None and newscore == score) or newscore < score:
+                            score, ceiling, move = newscore, newscore, m
+                        if score < floor: # Prune: Crossed the lower limit at this min layer already
+                                break
+            else: # Base case (depth==0)
+                score, move = self.score(game, self), None
+        else:
+            score, move = self.score(game, self), (-1, -1)
+        return score, move
+```
 
 With alpha-beta traversal, we are guaranteed the same outcome as minimax, yet without the overhead of exploring every game tree branch.
 
-##### Iterative Deepening
+##### Iterative Deepening & Quiessance
 
+```
+    ...
+    results = deque(maxlen=3)
+    for depth in range (self.search_depth, 25):
+        score, move = self.dosearch(game, depth)
+        results.append((score, move))
+        if len(results) >=3 and all(x[1] == move for x in results):
+            # Achieved quiessance here since last 3 moves recommendations were identical
+            break
+        if self.time_left() < 2*self.TIMER_THRESHOLD:
+            break
+```
 
-
-###### Quiessant search
-
-##### Board Evaluation Function
+##### Board Evaluation Functions
 
 ###### Custom 1
 
