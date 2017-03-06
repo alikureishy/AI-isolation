@@ -219,7 +219,28 @@ This scoring achieves an even better performance than the 'open_move_score' and 
 
 ```
 
-**Performance** 
+**Performance**
+
+```
+*************************
+Evaluating: ID_improved_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_improved_score vs   Random    	Result: 20 to 0
+  Match 2: ID_improved_score vs  MM/3_Null  	Result: 19 to 1
+  Match 3: ID_improved_score vs  MM/3_Open  	Result: 12 to 8
+  Match 4: ID_improved_score vs MM/3_Improved 	Result: 14 to 6
+  Match 5: ID_improved_score vs  AB/5_Null  	Result: 15 to 5
+  Match 6: ID_improved_score vs  AB/5_Open  	Result: 13 to 7
+  Match 7: ID_improved_score vs AB/5_Improved 	Result: 12 to 8
+
+
+Results:
+----------
+ID_improved_score     75.00%
+```
 
 
 ###### Net Advantage Score (net_advantage_score())
@@ -239,7 +260,30 @@ This score, as with the 'advantage score' above, is also based on the difference
     return score
 ```
 
-###### Mobility Score (mobility_score())
+**Performance**
+
+```
+*************************
+Evaluating: ID_net_advantage_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_net_advantage_score vs   Random    	Result: 20 to 0
+  Match 2: ID_net_advantage_score vs  MM/3_Null  	Result: 18 to 2
+  Match 3: ID_net_advantage_score vs  MM/3_Open  	Result: 13 to 7
+  Match 4: ID_net_advantage_score vs MM/3_Improved 	Result: 17 to 3
+  Match 5: ID_net_advantage_score vs  AB/5_Null  	Result: 17 to 3
+  Match 6: ID_net_advantage_score vs  AB/5_Open  	Result: 12 to 8
+  Match 7: ID_net_advantage_score vs AB/5_Improved 	Result: 13 to 7
+
+
+Results:
+----------
+ID_net_advantage_score     78.57%
+```
+
+###### Net-mobility Score (new_mobility_score())
 
 Another version of the advantage-based scores above is to return a fixed score (+/-1 or +/-2), regardless of the actual magnitude of variation, with 1 reflecting a minor advantage/disadvantage, and 2 reflecting a more significant one. The logic here is that any momentary advantage on the present board configuration will likely not be the same on a subsequent move, which might yield a very different mobility score. So, the extent of the advantage might not be as high as with the previous mechanisms, particularly since the adversarial search will likely settle on the highest scoring (but likely transient) alternative from among other alternatives that are better from a longer-term standpoint. *In practice, however, the performance of this approach falls shorter than the 'net advantage' approach above.*
 
@@ -262,6 +306,28 @@ Another version of the advantage-based scores above is to return a fixed score (
     return score
 ```
 
+**Performance**
+
+```
+*************************
+Evaluating: ID_net_mobility_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_net_mobility_score vs   Random    	Result: 19 to 1
+  Match 2: ID_net_mobility_score vs  MM/3_Null  	Result: 13 to 7
+  Match 3: ID_net_mobility_score vs  MM/3_Open  	Result: 13 to 7
+  Match 4: ID_net_mobility_score vs MM/3_Improved 	Result: 9 to 11
+  Match 5: ID_net_mobility_score vs  AB/5_Null  	Result: 14 to 6
+  Match 6: ID_net_mobility_score vs  AB/5_Open  	Result: 14 to 6
+  Match 7: ID_net_mobility_score vs AB/5_Improved 	Result: 13 to 7
+
+
+Results:
+----------
+ID_net_mobility_score     67.86%
+```
 
 ###### Distance-from-center Score (accessibility_score)
 
@@ -279,6 +345,29 @@ The scoring here is based on the distance of the player from the center. It favo
             score += -1
             
     return score
+```
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_accessibility_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_accessibility_score vs   Random    	Result: 18 to 2
+  Match 2: ID_accessibility_score vs  MM/3_Null  	Result: 12 to 8
+  Match 3: ID_accessibility_score vs  MM/3_Open  	Result: 12 to 8
+  Match 4: ID_accessibility_score vs MM/3_Improved 	Result: 10 to 10
+  Match 5: ID_accessibility_score vs  AB/5_Null  	Result: 14 to 6
+  Match 6: ID_accessibility_score vs  AB/5_Open  	Result: 6 to 14
+  Match 7: ID_accessibility_score vs AB/5_Improved 	Result: 6 to 14
+
+
+Results:
+----------
+ID_accessibility_score     55.71%
 ```
 
 ###### Offensive-position Score (offensive_score())
@@ -300,11 +389,75 @@ This score is based on whether the current player is positioned to consume one o
     return score
 ```
 
+**Performance**
+
+```
+*************************
+Evaluating: ID_offensive_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_offensive_score vs   Random    	Result: 19 to 1
+  Match 2: ID_offensive_score vs  MM/3_Null  	Result: 13 to 7
+  Match 3: ID_offensive_score vs  MM/3_Open  	Result: 8 to 12
+  Match 4: ID_offensive_score vs MM/3_Improved 	Result: 9 to 11
+  Match 5: ID_offensive_score vs  AB/5_Null  	Result: 13 to 7
+  Match 6: ID_offensive_score vs  AB/5_Open  	Result: 3 to 17
+  Match 7: ID_offensive_score vs AB/5_Improved 	Result: 5 to 15
+
+
+Results:
+----------
+ID_offensive_score     50.00%
+```
+
+###### Proximity score (proximity_score())
+
+This favors keeping the opponent closeby.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_location = game.get_player_location(player)
+        opp_location = game.get_player_location(game.get_opponent(player))
+        delta = gethopdistance(own_location, opp_location)
+        score -= delta   # Since the knight moves in an L shape (so can jump 2 spaces net)
+    return score
+```
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_proximity_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_proximity_score vs   Random    	Result: 20 to 0
+  Match 2: ID_proximity_score vs  MM/3_Null  	Result: 17 to 3
+  Match 3: ID_proximity_score vs  MM/3_Open  	Result: 9 to 11
+  Match 4: ID_proximity_score vs MM/3_Improved 	Result: 10 to 10
+  Match 5: ID_proximity_score vs  AB/5_Null  	Result: 12 to 8
+  Match 6: ID_proximity_score vs  AB/5_Open  	Result: 9 to 11
+  Match 7: ID_proximity_score vs AB/5_Improved 	Result: 10 to 10
+
+
+Results:
+----------
+ID_proximity_score     62.14%
+```
+
 ###### Distance-from-open-spaces score (horizon_score())
 
 This scoring is based on the distance of the player from the open spaces. The goal is to encourage the player to always stay closer, or move towards, parts of the board with more open spaces, so as to avoid getting trapped in a suboptimal region of the board. It helps potentially avoid the *horizon problem*.
 
 It is still a WIP and has therefore note been listed here.
+
+**Performance**
+
+TBD
 
 ##### Composite Scoring
 
@@ -312,7 +465,63 @@ A scoring function that is a combination of other scoring mechanisms is possible
 
 The following composite function was attempted
 
-###### Offensive + Proximity
+###### Offensive + Keeping-opponent-close + Net-mobility (combo_offensive_nearopponent_netmobility_score())
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_combo_offensive_nearopponent_netmobility_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_combo_offensive_nearopponent_netmobility_score vs   Random    	Result: 18 to 2
+  Match 2: ID_combo_offensive_nearopponent_netmobility_score vs  MM/3_Null  	Result: 16 to 4
+  Match 3: ID_combo_offensive_nearopponent_netmobility_score vs  MM/3_Open  	Result: 12 to 8
+  Match 4: ID_combo_offensive_nearopponent_netmobility_score vs MM/3_Improved 	Result: 14 to 6
+  Match 5: ID_combo_offensive_nearopponent_netmobility_score vs  AB/5_Null  	Result: 16 to 4
+  Match 6: ID_combo_offensive_nearopponent_netmobility_score vs  AB/5_Open  	Result: 7 to 13
+  Match 7: ID_combo_offensive_nearopponent_netmobility_score vs AB/5_Improved 	Result: 10 to 10
+
+
+Results:
+----------
+ID_combo_offensive_nearopponent_netmobility_score     66.43%
+```
+
+###### Net-advantage + Keeping-opponent-close (combo_netadvantage_nearopponent_score())
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_combo_netadvantage_nearopponent_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_combo_netadvantage_nearopponent_score vs   Random    	Result: 18 to 2
+  Match 2: ID_combo_netadvantage_nearopponent_score vs  MM/3_Null  	Result: 19 to 1
+  Match 3: ID_combo_netadvantage_nearopponent_score vs  MM/3_Open  	Result: 12 to 8
+  Match 4: ID_combo_netadvantage_nearopponent_score vs MM/3_Improved 	Result: 12 to 8
+  Match 5: ID_combo_netadvantage_nearopponent_score vs  AB/5_Null  	Result: 17 to 3
+  Match 6: ID_combo_netadvantage_nearopponent_score vs  AB/5_Open  	Result: 12 to 8
+  Match 7: ID_combo_netadvantage_nearopponent_score vs AB/5_Improved 	Result: 12 to 8
+
+
+Results:
+----------
+ID_combo_netadvantage_nearopponent_score     72.86%
+```
+
+###### Phased Scoring
+
+**Performance**
+
+```
+
+```
 
 
 
