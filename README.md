@@ -178,7 +178,7 @@ Due to the exponential nature of game tree exploration, memory and time constrai
 
 ###### Win-Lose score (winlose_score())
 
-This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. This is essentially a very weak scoring mechanism that relies instead on the game tree being expanded all the way to the end. In the absence of such an expansion, this scoring mechanism offers no useful information.
+This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. Any useful utilization of this heuristic alone would require the game tree to be expanded all the way to the end. In the absence of such an expansion, this scoring mechanism offers no useful information.
 
 ```
     if game.is_loser(player):
@@ -190,27 +190,37 @@ This scoring only looks at the end game -- i.e, whether the player has actually 
     return 0.
 ```
 
-####### Performance
+Even though this heuristic on its own is not very informative at intermediary board configurations, it does provide the information that all other heuristics try to approximate when the board is at the end game -- i.e, whether the given board configuration is a winning or losing configuration. Therefore, it is utilized as a short-circuiting determination for every board configuration, prior to other heuristics being utilized, as will be visible in the code snippets below.
 
+###### Open-Move score (open_move_score())
+
+This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. This is essentially a very weak scoring mechanism that relies instead on the game tree being expanded all the way to the end. In the absence of such an expansion, this scoring mechanism offers no useful information.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        score += float(len(game.get_legal_moves(player)))
+    return score
+```
 
 
 ###### Advantage score (improved_score())
 
-This scoring achieves satisfactory results, and is therefore listed here. Furthermore, it is used as a baseline when comparing subsequent scoring algorithms further below.
+This scoring achieves (sufficiently satisfactory) and better results than the aforementioned approaches, and is therefore listed here. Furthermore, it is used as a baseline when comparing subsequent scoring algorithms listed below.
 
 ```
-    if game.is_loser(player):
-        return float("-inf")
-
-    if game.is_winner(player):
-        return float("inf")
-
-    own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    return float(own_moves - opp_moves)
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_moves = len(game.get_legal_moves(player))
+        opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+        score += float(own_moves - opp_moves)
+    return score
 
 ```
 As can be seen, it returns the advantage (in # of move options available) between the given and opposing players.
+
+**Performance** 
+
 
 ###### Net Advantage Score (net_advantage_score())
 
@@ -219,18 +229,16 @@ This score, as with the 'advantage score' above, is also based on the difference
 There are two versions to this strategy. The first, as with the 'absolute advantage score' is to return the advantage as the difference in the number of options:
 
 ```
-    if game.is_loser(player):
-        return float("-inf")
-    if game.is_winner(player):
-        return float("inf")
-    own_moves = game.get_legal_moves(player)
-    opp_moves = game.get_legal_moves(game.get_opponent(player))
-    
-    if game.active_player == player:
-        return float(len(own_moves) - len(opp_moves))
-    else:
-        # It' the opponent's turn, so downgrade the advantage a bit
-        return float(len([x for x in own_moves if x not in opp_moves]) - len(opp_moves))
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_moves = game.get_legal_moves(player)
+        opp_moves = game.get_legal_moves(game.get_opponent(player))
+        if game.active_player == player:
+            score += float(len(own_moves) - len(opp_moves))
+        else:
+            # It' the opponent's turn, so downgrade the advantage a bit
+            score += float(len([x for x in own_moves if x not in opp_moves]) - len(opp_moves))
+    return score
 ```
 
 ###### Mobility Score (mobility_score())
@@ -238,31 +246,48 @@ There are two versions to this strategy. The first, as with the 'absolute advant
 Another version of the advantage-based scores above is to return a fixed score (+/-1 or +/-2), regardless of the magnitude of variation. The logic here is that any momentary advantage here will mostly just exist on the current move. Subsequent moves might have a completely different scenario. So, the extent of the advantage might not be as high as with the previous mechanisms. *In practice, however, the performance of this approach falls shorter than the 'net advantage' approach above.*
 
 ```
-    own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    if player == game.active_player:
-        if own_moves > opp_moves:
-            score += 2              # Active player so extra adv
-        elif own_moves < opp_moves:
-            score -= 1
-    else:
-        # Having fewer moves is worse if we're not the next player
-        if own_moves > opp_moves:
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_moves = len(game.get_legal_moves(player))
+        opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+        if player == game.active_player:
+            if own_moves > opp_moves:
+                score += 2              # Active player so extra adv
+            elif own_moves < opp_moves:
+                score -= 1
+        else:
+            # Having fewer moves is worse if we're not the next player
+            if own_moves > opp_moves:
+                score += 1
+            elif own_moves < opp_moves: # Not active, so worse-off
+                score -= 2
+    return score
+```
+
+
+###### Distance-from-center Score (accessibility_score)
+
+The scoring here is based on the distance of the player from the center. It favors the player that stays closer to the center. On its own, it is not a robust enough scoring mechanism, but it might find use alongside other scoring mechanisms during the initial part of the game, when being closer to the center might offer a longer-term advantage. Later in the game, this mechanism could be dropped, as long as its absence is compensated for by a new mechanism, or a pre-existing scoring mechanism that acquires a greater scoring weightage.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        center = (round(game.height / 2), round(game.width / 2))
+        own_location = game.get_player_location(player)
+        delta = gethopdistance(own_location, center)
+        if delta < round(center[0]/2):
             score += 1
-        elif own_moves < opp_moves: # Not active, so worse-off
-            score -= 2
+        elif delta > round(center[0]/2):
+            score += -1
+            
+    return score
 ```
 
+###### Distance-from-open-spaces score (horizon_score())
 
-###### Distance-from-center Score
+This scoring is based on the distance of the player from the open spaces. The goal is to encourage the player to always stay closer, or move towards, parts of the board with more open spaces, so as to avoid getting trapped in a suboptimal region of the board. It helps potentially avoid the *horizon problem*.
 
-The scoring here is based on the distance of the player from the center. It favors the player that stays closer to the center. On its own, it is not a robust enough scoring mechanism, but it might find use during the initial part of the game, when being closer to the center might offer a longer-term advantage.
-
-```
-```
-
-###### Custom 3
-
+It is still a WIP and has therefore note been listed here.
 
 
 ### Tournament
