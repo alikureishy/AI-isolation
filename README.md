@@ -174,7 +174,23 @@ With alpha-beta traversal, we are guaranteed the same outcome as minimax, yet wi
 
 ##### Board Evaluation Functions
 
-###### Custom 1
+###### Win-Lose score (winlose_score())
+
+This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. This is essentially a very weak scoring mechanism that relies instead on the game tree being expanded all the way to the end. In the absence of such an expansion, this scoring mechanism offers no useful information.
+
+```
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    return 0.
+```
+
+###### Advantage score (improved_score())
+
+This scoring achieves satisfactory results, and is therefore listed here. Furthermore, it is used as a baseline when comparing subsequent scoring algorithms further below.
 
 ```
     if game.is_loser(player):
@@ -186,23 +202,57 @@ With alpha-beta traversal, we are guaranteed the same outcome as minimax, yet wi
     own_moves = len(game.get_legal_moves(player))
     opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
     return float(own_moves - opp_moves)
-```
 
-###### Custom 2
+```
+As can be seen, it returns the advantage (in # of move options available) between the given and opposing players.
+
+###### Net Advantage Score (net_advantage_score())
+
+This score, as with the 'advantage score' above, is also based on the difference in number of moves between the opponent and oneself. However, there is a minor variation, as shown in the code snippets below. More specifically, the score is even higher if the advantage is assessed when the player is active (as opposed to when it is inactive), and similarly, even lower if the disadvantage is assessed when the player is inactive.
+
+There are two versions to this strategy. The first, as with the 'absolute advantage score' is to return the advantage as the difference in the number of options:
 
 ```
     if game.is_loser(player):
         return float("-inf")
-
     if game.is_winner(player):
         return float("inf")
-        
     own_moves = game.get_legal_moves(player)
     opp_moves = game.get_legal_moves(game.get_opponent(player))
+    
     if game.active_player == player:
         return float(len(own_moves) - len(opp_moves))
-    else: # It' the opponent's turn, so revise the options a bit
+    else:
+        # It' the opponent's turn, so downgrade the advantage a bit
         return float(len([x for x in own_moves if x not in opp_moves]) - len(opp_moves))
+```
+
+###### Mobility Score (mobility_score())
+
+Another version of the advantage-based scores above is to return a fixed score (+/-1 or +/-2), regardless of the magnitude of variation. The logic here is that any momentary advantage here will mostly just exist on the current move. Subsequent moves might have a completely different scenario. So, the extent of the advantage might not be as high as with the previous mechanisms. *In practice, however, the performance of this approach falls shorter than the 'net advantage' approach above.*
+
+```
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    if player == game.active_player:
+        if own_moves > opp_moves:
+            score += 2              # Active player so extra adv
+        elif own_moves < opp_moves:
+            score -= 1
+    else:
+        # Having fewer moves is worse if we're not the next player
+        if own_moves > opp_moves:
+            score += 1
+        elif own_moves < opp_moves: # Not active, so worse-off
+            score -= 2
+```
+
+
+###### Distance-from-center Score
+
+The scoring here is based on the distance of the player from the center. It favors the player that stays closer to the center. On its own, it is not a robust enough scoring mechanism, but it might find use during the initial part of the game, when being closer to the center might offer a longer-term advantage.
+
+```
 ```
 
 ###### Custom 3
