@@ -36,6 +36,7 @@ O_HERE = (BLUE, O)
 X_HERE = (BROWN, X)
 O_VISITED = (GRAY, O)
 X_VISITED = (GRAY, X)
+VISITED = (GRAY, None)
 O_WIN = (GREEN, O)
 X_WIN = (GREEN, X)
 O_LOSE = (RED, O)
@@ -137,12 +138,13 @@ class Visualizer(object):
                         self.__redraw__()
                         sleep(3)
                         othermove = self.moves[idx-1]
-                        self.grid[othermove[0]][othermove[1]] = O_WIN if nextplayer == X else X_LOSE
+                        self.grid[othermove[0]][othermove[1]] = O_WIN if nextplayer == X else X_WIN
                         self.__redraw__()
                     else:
                         self.grid[nextmove[0]][nextmove[1]] = X_HERE if nextplayer == X else O_HERE
                         lastmove = self.moves[idx-2]
-                        self.grid[lastmove[0]][lastmove[1]] = X_VISITED if nextplayer == X else O_VISITED
+#                         self.grid[lastmove[0]][lastmove[1]] = X_VISITED if nextplayer == X else O_VISITED
+                        self.grid[lastmove[0]][lastmove[1]] = VISITED
                         self.__redraw__()
                     idx+=1
          
