@@ -174,6 +174,8 @@ With alpha-beta traversal, we are guaranteed the same outcome as minimax, yet wi
 
 ##### Board Evaluation Functions
 
+Due to the exponential nature of game tree exploration, memory and time constraints can be limiting. It is therefore usually infeasible to explore very deep into the tree on any turn. In this scenario, heuristics to determine the advantage that a given board configuration confers to the given player can be helpful at approximating the advantage of a given manouvre. The effectiveness of the heuristic can be the differentiating factor for winning or losing the game. Therefore, several different mechanisms have been explored here, with a brief analysis of the performance.
+
 ###### Win-Lose score (winlose_score())
 
 This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. This is essentially a very weak scoring mechanism that relies instead on the game tree being expanded all the way to the end. In the absence of such an expansion, this scoring mechanism offers no useful information.
@@ -187,6 +189,10 @@ This scoring only looks at the end game -- i.e, whether the player has actually 
 
     return 0.
 ```
+
+####### Performance
+
+
 
 ###### Advantage score (improved_score())
 
