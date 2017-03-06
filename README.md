@@ -174,11 +174,13 @@ With alpha-beta traversal, we are guaranteed the same outcome as minimax, yet wi
 
 ##### Board Evaluation Functions
 
-Due to the exponential nature of game tree exploration, memory and time constraints can be limiting. It is therefore usually infeasible to explore very deep into the tree on any turn. In this scenario, heuristics to determine the advantage that a given board configuration confers to the given player can be helpful at approximating the advantage of a given manouvre. The effectiveness of the heuristic can be the differentiating factor for winning or losing the game. Therefore, several different mechanisms have been explored here, with a brief analysis of the performance.
+Due to the exponential nature of game tree exploration, memory and time constraints can be limiting. It is therefore usually infeasible to explore very deep into the tree on any turn. In this scenario, heuristics to *quantify the advantage that a given board configuration confers to the given player, relative to other board configurations*, can be helpful at approximating the best choice among possible moves for that player. The effectiveness of the heuristic can be the differentiating factor for winning or losing the game.
+
+Therefore, several different mechanisms have been explored here, with a brief analysis of the performance of each.
 
 ###### Win-Lose score (winlose_score())
 
-This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. Any useful utilization of this heuristic alone would require the game tree to be expanded all the way to the end. In the absence of such an expansion, this scoring mechanism offers no useful information.
+This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. I wouldn't even call this a heuristic function because any useful information here would require the game tree to be expanded all the way to the end.
 
 ```
     if game.is_loser(player):
@@ -190,11 +192,11 @@ This scoring only looks at the end game -- i.e, whether the player has actually 
     return 0.
 ```
 
-Even though this heuristic on its own is not very informative at intermediary board configurations, it does provide the information that all other heuristics try to approximate when the board is at the end game -- i.e, whether the given board configuration is a winning or losing configuration. Therefore, it is utilized as a short-circuiting determination for every board configuration, prior to other heuristics being utilized, as will be visible in the code snippets below.
+Even though it is not very informative on its own for evaluating intermediary board configurations, it does provide the information that all other heuristics try to approximate -- i.e, whether the given board configuration is a winning or losing configuration. Therefore, it is utilized as a short-circuiting determination for every board configuration, prior to other heuristics being utilized, as will be visible in the code snippets below.
 
 ###### Open-Move score (open_move_score())
 
-This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. This is essentially a very weak scoring mechanism that relies instead on the game tree being expanded all the way to the end. In the absence of such an expansion, this scoring mechanism offers no useful information.
+This scoring looks at the number of options available to the player in the present board configuration. It is a sufficiently useful metric and achieves a reasonable performance.
 
 ```
     score = winlose_score(game, player)
@@ -203,10 +205,9 @@ This scoring only looks at the end game -- i.e, whether the player has actually 
     return score
 ```
 
-
 ###### Advantage score (improved_score())
 
-This scoring achieves (sufficiently satisfactory) and better results than the aforementioned approaches, and is therefore listed here. Furthermore, it is used as a baseline when comparing subsequent scoring algorithms listed below.
+This scoring achieves an even better performance than the 'open_move_score' and is used as a baseline when comparing subsequent scoring algorithms listed below. It determines a very naive determination of the relative advantage of the given player, compared to the opposing player, and returns the advantage as the # of additional move options available to the one over the other.
 
 ```
     score = winlose_score(game, player)
@@ -217,16 +218,13 @@ This scoring achieves (sufficiently satisfactory) and better results than the af
     return score
 
 ```
-As can be seen, it returns the advantage (in # of move options available) between the given and opposing players.
 
 **Performance** 
 
 
 ###### Net Advantage Score (net_advantage_score())
 
-This score, as with the 'advantage score' above, is also based on the difference in number of moves between the opponent and oneself. However, there is a minor variation, as shown in the code snippets below. More specifically, the score is even higher if the advantage is assessed when the player is active (as opposed to when it is inactive), and similarly, even lower if the disadvantage is assessed when the player is inactive.
-
-There are two versions to this strategy. The first, as with the 'absolute advantage score' is to return the advantage as the difference in the number of options:
+This score, as with the 'advantage score' above, is also based on the difference in number of moves between the opponent and oneself. However, it also takes into account who the active player is. The score is even higher if an advantage is assessed when the player is active (as opposed to when it is inactive), and similarly, even lower if a disadvantage is assessed when the player is inactive.
 
 ```
     score = winlose_score(game, player)
@@ -243,7 +241,7 @@ There are two versions to this strategy. The first, as with the 'absolute advant
 
 ###### Mobility Score (mobility_score())
 
-Another version of the advantage-based scores above is to return a fixed score (+/-1 or +/-2), regardless of the magnitude of variation. The logic here is that any momentary advantage here will mostly just exist on the current move. Subsequent moves might have a completely different scenario. So, the extent of the advantage might not be as high as with the previous mechanisms. *In practice, however, the performance of this approach falls shorter than the 'net advantage' approach above.*
+Another version of the advantage-based scores above is to return a fixed score (+/-1 or +/-2), regardless of the actual magnitude of variation, with 1 reflecting a minor advantage/disadvantage, and 2 reflecting a more significant one. The logic here is that any momentary advantage on the present board configuration will likely not be the same on a subsequent move, which might yield a very different mobility score. So, the extent of the advantage might not be as high as with the previous mechanisms, particularly since the adversarial search will likely settle on the highest scoring (but likely transient) alternative from among other alternatives that are better from a longer-term standpoint. *In practice, however, the performance of this approach falls shorter than the 'net advantage' approach above.*
 
 ```
     score = winlose_score(game, player)
@@ -267,7 +265,7 @@ Another version of the advantage-based scores above is to return a fixed score (
 
 ###### Distance-from-center Score (accessibility_score)
 
-The scoring here is based on the distance of the player from the center. It favors the player that stays closer to the center. On its own, it is not a robust enough scoring mechanism, but it might find use alongside other scoring mechanisms during the initial part of the game, when being closer to the center might offer a longer-term advantage. Later in the game, this mechanism could be dropped, as long as its absence is compensated for by a new mechanism, or a pre-existing scoring mechanism that acquires a greater scoring weightage.
+The scoring here is based on the distance of the player from the center. It favors the player that stays closer to the center. On its own, it is not a robust enough scoring mechanism, but it might find use alongside others during the initial part of the game, when being closer to the center might offer a longer-term advantage. Later in the game, this mechanism could be dropped, as long as its absence is compensated for by a new mechanism, or a pre-existing scoring mechanism that acquires a greater scoring weightage.
 
 ```
     score = winlose_score(game, player)
@@ -283,11 +281,40 @@ The scoring here is based on the distance of the player from the center. It favo
     return score
 ```
 
+###### Offensive-position Score (offensive_score())
+
+This score is based on whether the current player is positioned to consume one of the opposing player's positions. This is an offensive tactic, and might be helpful in the later parts of the game.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_moves = game.get_legal_moves(player)
+        opp_moves = game.get_legal_moves(game.get_opponent(player))
+        current_overlap = [x for x in own_moves if x in opp_moves]
+        if player == game.active_player:
+            if len(current_overlap) > 0:
+                score += 1  # We are at an advantage
+        else:
+            if len(current_overlap) > 0:
+                score -= 1  # We are at a disadvantage
+    return score
+```
+
 ###### Distance-from-open-spaces score (horizon_score())
 
 This scoring is based on the distance of the player from the open spaces. The goal is to encourage the player to always stay closer, or move towards, parts of the board with more open spaces, so as to avoid getting trapped in a suboptimal region of the board. It helps potentially avoid the *horizon problem*.
 
 It is still a WIP and has therefore note been listed here.
+
+##### Composite Scoring
+
+A scoring function that is a combination of other scoring mechanisms is possible too, but should be implemented carefully to avoid overweighting or underweighting different sub-scores.
+
+The following composite function was attempted
+
+###### Offensive + Proximity
+
+
 
 
 ### Tournament
