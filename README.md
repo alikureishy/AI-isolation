@@ -172,46 +172,11 @@ With alpha-beta traversal, we are guaranteed the same outcome as minimax, yet wi
             break
 ```
 
-##### Board Evaluation Functions
+##### Board Evaluation Functions & Anaysis
 
-###### Custom 1
+Due to the exponential nature of game tree exploration, memory and time constraints can be limiting. It is therefore usually infeasible to explore very deep into the tree on any turn. In this scenario, heuristics to *quantify the advantage that a given board configuration confers to the given player, relative to other board configurations*, can be helpful at approximating the best choice among possible moves for that player.
 
-```
-    if game.is_loser(player):
-        return float("-inf")
-
-    if game.is_winner(player):
-        return float("inf")
-
-    own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    return float(own_moves - opp_moves)
-```
-
-###### Custom 2
-
-```
-    if game.is_loser(player):
-        return float("-inf")
-
-    if game.is_winner(player):
-        return float("inf")
-        
-    own_moves = game.get_legal_moves(player)
-    opp_moves = game.get_legal_moves(game.get_opponent(player))
-    if game.active_player == player:
-        return float(len(own_moves) - len(opp_moves))
-    else: # It' the opponent's turn, so revise the options a bit
-        return float(len([x for x in own_moves if x not in opp_moves]) - len(opp_moves))
-```
-
-###### Custom 3
-
-
-
-### Tournament
-
-The `tournament.py` script is used to evaluate the effectiveness of your custom_score heuristic.  The script measures relative performance of your agent (called "Student") in a round-robin tournament against several other pre-defined agents.  The Student agent uses time-limited Iterative Deepening and the custom_score heuristic you wrote.
+The effectiveness of the heuristic can be the differentiating factor for winning or losing the game. Different mechanisms have been explored below, with a brief analysis of the performance of each of these heuristics against a set of very simple/primitive heuristics. A `tournament.py` script is used to evaluate this effectiveness by measuring the relative performance of the given heuristic in a round-robin tournament against several other pre-defined heuristics, each using both minimax search and alphabeta pruning (as well as a random player/agent). The heuristic in question, however, is measured using time-limited Iterative Deepening and the custom_score heuristic you wrote.
 
 The performance of time-limited iterative deepening search is hardware dependent (faster hardware is expected to search deeper than slower hardware in the same amount of time).  The script controls for these effects by also measuring the baseline performance of an agent called "ID_Improved" that uess Iterative Deepening and the improved_score heuristic from `sample_players.py`.  Your goal is to develop a heuristic such that Student outperforms ID_Improved.
 
@@ -224,4 +189,349 @@ The tournament opponents are listed below. (See also: sample heuristics and play
 - AB_Null: CustomPlayer agent using fixed-depth alpha-beta search and the null_score heuristic
 - AB_Open: CustomPlayer agent using fixed-depth alpha-beta search and the open_move_score heuristic
 - AB_Improved: CustomPlayer agent using fixed-depth alpha-beta search and the improved_score heuristic
+
+###### Win-Lose score (winlose_score())
+
+This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. I wouldn't even call this a heuristic function because any useful information here would require the game tree to be expanded all the way to the end.
+
+```
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    return 0.
+```
+
+Even though it is not very informative on its own for evaluating intermediary board configurations, it does provide the information that all other heuristics try to approximate -- i.e, whether the given board configuration is a winning or losing configuration. Therefore, it is utilized as a short-circuiting determination for every board configuration, prior to other heuristics being utilized, as will be visible in the code snippets below.
+
+###### Open-Move score (open_move_score())
+
+This scoring looks at the number of options available to the player in the present board configuration. It is a sufficiently useful metric and achieves a reasonable performance.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        score += float(len(game.get_legal_moves(player)))
+    return score
+```
+
+###### Advantage score (improved_score())
+
+This scoring achieves an even better performance than the 'open_move_score' and is used as a baseline when comparing subsequent scoring algorithms listed below. It determines a very naive determination of the relative advantage of the given player, compared to the opposing player, and returns the advantage as the # of additional move options available to the one over the other.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_moves = len(game.get_legal_moves(player))
+        opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+        score += float(own_moves - opp_moves)
+    return score
+
+```
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_improved_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_improved_score vs   Random    	Result: 20 to 0
+  Match 2: ID_improved_score vs  MM/3_Null  	Result: 19 to 1
+  Match 3: ID_improved_score vs  MM/3_Open  	Result: 12 to 8
+  Match 4: ID_improved_score vs MM/3_Improved 	Result: 14 to 6
+  Match 5: ID_improved_score vs  AB/5_Null  	Result: 15 to 5
+  Match 6: ID_improved_score vs  AB/5_Open  	Result: 13 to 7
+  Match 7: ID_improved_score vs AB/5_Improved 	Result: 12 to 8
+
+
+Results:
+----------
+ID_improved_score     75.00%
+```
+
+
+###### Net Advantage Score (net_advantage_score())
+
+This score, as with the 'advantage score' above, is also based on the difference in number of moves between the opponent and oneself. However, it also takes into account who the active player is. The score is even higher if an advantage is assessed when the player is active (as opposed to when it is inactive), and similarly, even lower if a disadvantage is assessed when the player is inactive.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_moves = game.get_legal_moves(player)
+        opp_moves = game.get_legal_moves(game.get_opponent(player))
+        if game.active_player == player:
+            score += float(len(own_moves) - len(opp_moves))
+        else:
+            # It' the opponent's turn, so downgrade the advantage a bit
+            score += float(len([x for x in own_moves if x not in opp_moves]) - len(opp_moves))
+    return score
+```
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_net_advantage_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_net_advantage_score vs   Random    	Result: 20 to 0
+  Match 2: ID_net_advantage_score vs  MM/3_Null  	Result: 18 to 2
+  Match 3: ID_net_advantage_score vs  MM/3_Open  	Result: 13 to 7
+  Match 4: ID_net_advantage_score vs MM/3_Improved 	Result: 17 to 3
+  Match 5: ID_net_advantage_score vs  AB/5_Null  	Result: 17 to 3
+  Match 6: ID_net_advantage_score vs  AB/5_Open  	Result: 12 to 8
+  Match 7: ID_net_advantage_score vs AB/5_Improved 	Result: 13 to 7
+
+
+Results:
+----------
+ID_net_advantage_score     78.57%
+```
+
+###### Net-mobility Score (new_mobility_score())
+
+Another version of the advantage-based scores above is to return a fixed score (+/-1 or +/-2), regardless of the actual magnitude of variation, with 1 reflecting a minor advantage/disadvantage, and 2 reflecting a more significant one. The logic here is that any momentary advantage on the present board configuration will likely not be the same on a subsequent move, which might yield a very different mobility score. So, the extent of the advantage might not be as high as with the previous mechanisms, particularly since the adversarial search will likely settle on the highest scoring (but likely transient) alternative from among other alternatives that are better from a longer-term standpoint. *In practice, however, the performance of this approach falls shorter than the 'net advantage' approach above.*
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_moves = len(game.get_legal_moves(player))
+        opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+        if player == game.active_player:
+            if own_moves > opp_moves:
+                score += 2              # Active player so extra adv
+            elif own_moves < opp_moves:
+                score -= 1
+        else:
+            # Having fewer moves is worse if we're not the next player
+            if own_moves > opp_moves:
+                score += 1
+            elif own_moves < opp_moves: # Not active, so worse-off
+                score -= 2
+    return score
+```
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_net_mobility_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_net_mobility_score vs   Random    	Result: 19 to 1
+  Match 2: ID_net_mobility_score vs  MM/3_Null  	Result: 13 to 7
+  Match 3: ID_net_mobility_score vs  MM/3_Open  	Result: 13 to 7
+  Match 4: ID_net_mobility_score vs MM/3_Improved 	Result: 9 to 11
+  Match 5: ID_net_mobility_score vs  AB/5_Null  	Result: 14 to 6
+  Match 6: ID_net_mobility_score vs  AB/5_Open  	Result: 14 to 6
+  Match 7: ID_net_mobility_score vs AB/5_Improved 	Result: 13 to 7
+
+
+Results:
+----------
+ID_net_mobility_score     67.86%
+```
+
+###### Distance-from-center Score (accessibility_score)
+
+The scoring here is based on the distance of the player from the center. It favors the player that stays closer to the center. On its own, it is not a robust enough scoring mechanism, but it might find use alongside others during the initial part of the game, when being closer to the center might offer a longer-term advantage. Later in the game, this mechanism could be dropped, as long as its absence is compensated for by a new mechanism, or a pre-existing scoring mechanism that acquires a greater scoring weightage.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        center = (round(game.height / 2), round(game.width / 2))
+        own_location = game.get_player_location(player)
+        delta = gethopdistance(own_location, center)
+        if delta < round(center[0]/2):
+            score += 1
+        elif delta > round(center[0]/2):
+            score += -1
+            
+    return score
+```
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_accessibility_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_accessibility_score vs   Random    	Result: 18 to 2
+  Match 2: ID_accessibility_score vs  MM/3_Null  	Result: 12 to 8
+  Match 3: ID_accessibility_score vs  MM/3_Open  	Result: 12 to 8
+  Match 4: ID_accessibility_score vs MM/3_Improved 	Result: 10 to 10
+  Match 5: ID_accessibility_score vs  AB/5_Null  	Result: 14 to 6
+  Match 6: ID_accessibility_score vs  AB/5_Open  	Result: 6 to 14
+  Match 7: ID_accessibility_score vs AB/5_Improved 	Result: 6 to 14
+
+
+Results:
+----------
+ID_accessibility_score     55.71%
+```
+
+###### Offensive-position Score (offensive_score())
+
+This score is based on whether the current player is positioned to consume one of the opposing player's positions. This is an offensive tactic, and might be helpful in the later parts of the game.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_moves = game.get_legal_moves(player)
+        opp_moves = game.get_legal_moves(game.get_opponent(player))
+        current_overlap = [x for x in own_moves if x in opp_moves]
+        if player == game.active_player:
+            if len(current_overlap) > 0:
+                score += 1  # We are at an advantage
+        else:
+            if len(current_overlap) > 0:
+                score -= 1  # We are at a disadvantage
+    return score
+```
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_offensive_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_offensive_score vs   Random    	Result: 19 to 1
+  Match 2: ID_offensive_score vs  MM/3_Null  	Result: 13 to 7
+  Match 3: ID_offensive_score vs  MM/3_Open  	Result: 8 to 12
+  Match 4: ID_offensive_score vs MM/3_Improved 	Result: 9 to 11
+  Match 5: ID_offensive_score vs  AB/5_Null  	Result: 13 to 7
+  Match 6: ID_offensive_score vs  AB/5_Open  	Result: 3 to 17
+  Match 7: ID_offensive_score vs AB/5_Improved 	Result: 5 to 15
+
+
+Results:
+----------
+ID_offensive_score     50.00%
+```
+
+###### Proximity score (proximity_score())
+
+This favors keeping the opponent closeby.
+
+```
+    score = winlose_score(game, player)
+    if -INFINITY < score < INFINITY:
+        own_location = game.get_player_location(player)
+        opp_location = game.get_player_location(game.get_opponent(player))
+        delta = gethopdistance(own_location, opp_location)
+        score -= delta   # Since the knight moves in an L shape (so can jump 2 spaces net)
+    return score
+```
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_proximity_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_proximity_score vs   Random    	Result: 20 to 0
+  Match 2: ID_proximity_score vs  MM/3_Null  	Result: 17 to 3
+  Match 3: ID_proximity_score vs  MM/3_Open  	Result: 9 to 11
+  Match 4: ID_proximity_score vs MM/3_Improved 	Result: 10 to 10
+  Match 5: ID_proximity_score vs  AB/5_Null  	Result: 12 to 8
+  Match 6: ID_proximity_score vs  AB/5_Open  	Result: 9 to 11
+  Match 7: ID_proximity_score vs AB/5_Improved 	Result: 10 to 10
+
+
+Results:
+----------
+ID_proximity_score     62.14%
+```
+
+###### Distance-from-open-spaces score (horizon_score())
+
+This scoring is based on the distance of the player from the open spaces. The goal is to encourage the player to always stay closer, or move towards, parts of the board with more open spaces, so as to avoid getting trapped in a suboptimal region of the board. It helps potentially avoid the *horizon problem*.
+
+It is still a WIP and has therefore note been listed here.
+
+**Performance**
+
+TBD
+
+##### Composite Scoring
+
+A scoring function that is a combination of other scoring mechanisms is possible too, but should be implemented carefully to avoid overweighting or underweighting different sub-scores.
+
+The following composite function was attempted
+
+###### Offensive + Keeping-opponent-close + Net-mobility (combo_offensive_nearopponent_netmobility_score())
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_combo_offensive_nearopponent_netmobility_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_combo_offensive_nearopponent_netmobility_score vs   Random    	Result: 18 to 2
+  Match 2: ID_combo_offensive_nearopponent_netmobility_score vs  MM/3_Null  	Result: 16 to 4
+  Match 3: ID_combo_offensive_nearopponent_netmobility_score vs  MM/3_Open  	Result: 12 to 8
+  Match 4: ID_combo_offensive_nearopponent_netmobility_score vs MM/3_Improved 	Result: 14 to 6
+  Match 5: ID_combo_offensive_nearopponent_netmobility_score vs  AB/5_Null  	Result: 16 to 4
+  Match 6: ID_combo_offensive_nearopponent_netmobility_score vs  AB/5_Open  	Result: 7 to 13
+  Match 7: ID_combo_offensive_nearopponent_netmobility_score vs AB/5_Improved 	Result: 10 to 10
+
+
+Results:
+----------
+ID_combo_offensive_nearopponent_netmobility_score     66.43%
+```
+
+###### Net-advantage + Keeping-opponent-close (combo_netadvantage_nearopponent_score())
+
+**Performance**
+
+```
+*************************
+Evaluating: ID_combo_netadvantage_nearopponent_score
+*************************
+
+Playing Matches:
+----------
+  Match 1: ID_combo_netadvantage_nearopponent_score vs   Random    	Result: 18 to 2
+  Match 2: ID_combo_netadvantage_nearopponent_score vs  MM/3_Null  	Result: 19 to 1
+  Match 3: ID_combo_netadvantage_nearopponent_score vs  MM/3_Open  	Result: 12 to 8
+  Match 4: ID_combo_netadvantage_nearopponent_score vs MM/3_Improved 	Result: 12 to 8
+  Match 5: ID_combo_netadvantage_nearopponent_score vs  AB/5_Null  	Result: 17 to 3
+  Match 6: ID_combo_netadvantage_nearopponent_score vs  AB/5_Open  	Result: 12 to 8
+  Match 7: ID_combo_netadvantage_nearopponent_score vs AB/5_Improved 	Result: 12 to 8
+
+
+Results:
+----------
+ID_combo_netadvantage_nearopponent_score     72.86%
+```
+
+###### Phased Scoring
+
+**Performance**
+
+```
+
+```
 
