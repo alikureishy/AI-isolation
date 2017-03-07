@@ -169,14 +169,14 @@ def main():
     # faster or slower computers.
     test_agents = [
                     Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_improved_score"),
-                    Agent(CustomPlayer(score_fn=net_advantage_score, **CUSTOM_ARGS), "ID_net_advantage_score"),
-                    Agent(CustomPlayer(score_fn=net_mobility_score, **CUSTOM_ARGS), "ID_net_mobility_score"),
-                    Agent(CustomPlayer(score_fn=offensive_score, **CUSTOM_ARGS), "ID_offensive_score"),
-                    Agent(CustomPlayer(score_fn=accessibility_score, **CUSTOM_ARGS), "ID_accessibility_score"),
-                    Agent(CustomPlayer(score_fn=proximity_score, **CUSTOM_ARGS), "ID_proximity_score"),
-                    Agent(CustomPlayer(score_fn=combo_nearcenter_avoidopponent_score, **CUSTOM_ARGS), "ID_combo_nearcenter_avoidopponent_score"),
-                    Agent(CustomPlayer(score_fn=combo_offensive_nearopponent_netmobility_score, **CUSTOM_ARGS), "ID_combo_offensive_nearopponent_netmobility_score"),
-                    Agent(CustomPlayer(score_fn=combo_netadvantage_nearopponent_score, **CUSTOM_ARGS), "ID_combo_netadvantage_nearopponent_score"),
+#                     Agent(CustomPlayer(score_fn=net_advantage_score, **CUSTOM_ARGS), "ID_net_advantage_score"),
+#                     Agent(CustomPlayer(score_fn=net_mobility_score, **CUSTOM_ARGS), "ID_net_mobility_score"),
+#                     Agent(CustomPlayer(score_fn=offensive_score, **CUSTOM_ARGS), "ID_offensive_score"),
+#                     Agent(CustomPlayer(score_fn=accessibility_score, **CUSTOM_ARGS), "ID_accessibility_score"),
+#                     Agent(CustomPlayer(score_fn=proximity_score, **CUSTOM_ARGS), "ID_proximity_score"),
+#                     Agent(CustomPlayer(score_fn=combo_nearcenter_avoidopponent_score, **CUSTOM_ARGS), "ID_combo_nearcenter_avoidopponent_score"),
+#                     Agent(CustomPlayer(score_fn=combo_offensive_nearopponent_netmobility_score, **CUSTOM_ARGS), "ID_combo_offensive_nearopponent_netmobility_score"),
+#                     Agent(CustomPlayer(score_fn=combo_netadvantage_nearopponent_score, **CUSTOM_ARGS), "ID_combo_netadvantage_nearopponent_score"),
                     Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "ID_custom_score")
                    ]
 
