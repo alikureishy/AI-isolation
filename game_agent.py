@@ -7,10 +7,8 @@ You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
 import random
-from scipy.stats._continuous_distns import beta
 import logging
 from collections import deque
-from scorefunctions import null_score
 from scorefunctions import custom_score
 
 class Timeout(Exception):
@@ -115,15 +113,15 @@ class CustomPlayer:
                     if len(results) >=3 and all(x[1] == move for x in results):
 #                         print ("Quiessance at depth: {} with move {}".format(depth, (score, move)))
                         break
-                    if self.time_left() < 2*self.TIMER_THRESHOLD:
+                    if self.time_left() < self.TIMER_THRESHOLD:
                         break
             else:
                 score, move = self.dosearch(game, self.search_depth)
                 assert score is not None
                 
             if len (options) > 0:
-                assert not (move is None or move is (-1,-1)), "Move ({}, {}) for '{}/{}' cannot be None or (-1,-1) if options ({}) exist".format(move, score, self.method, self.score_fn, options)
-                assert move in options, "Move ({}, {}) for '{}/{}' not from existing list of moves ({})".format(move, score, self.method, self.score_fn, options)
+                assert not (move is None or move is (-1,-1)), "Move ({}, {}) for '{}/{}' cannot be None or (-1,-1) if options ({}) exist".format(move, score, self.method, self.score, options)
+                assert move in options, "Move ({}, {}) for '{}/{}' not from existing list of moves ({})".format(move, score, self.method, self.score, options)
         except Timeout:
 #             print (".")
             # Handle any actions required at timeout, if necessary
@@ -179,29 +177,27 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        floor = float('-inf')
-        ceiling = float('+inf')
         legal_moves = game.get_legal_moves(game.active_player)
-        if legal_moves and len(legal_moves)>0:
+        if legal_moves is not None and len(legal_moves)>0:
             if depth>0: # Recursive case:
                 if maximizing_player:   # MAXIMIZING ply
 #                     print (tab + "MAXIMIZING: (({})) ||  Moves: {}".format(depth, legal_moves))
-                    score, move = floor, None
+                    score, move = None, None
                     for i,m in enumerate(legal_moves):
                         newscore, _ = self.minimax(game.forecast_move(m), depth-1, maximizing_player=not maximizing_player, tab=tab+'\t')
-                        if (move is None and newscore == score) or newscore > score:
+                        if score is None or newscore > score:
                             score, move = newscore, m
                 else:                   # MINIMIZING ply
 #                     print (tab + "MINIMIZING: (({})) ||  Moves: {}".format(depth, legal_moves))
-                    score, move = ceiling, None
+                    score, move = None, None
                     for i,m in enumerate(legal_moves):
                         newscore, _ = self.minimax(game.forecast_move(m), depth-1, maximizing_player=not maximizing_player, tab=tab+'\t')
-                        if (move is None and newscore == score) or newscore < score:
+                        if score is None or newscore < score:
                             score, move = newscore, m
             else: # Base case (depth==0)
                 score, move = self.score(game, self), None
 #                 print (tab + "(BASE): (({})) ||  Moves: {}".format(depth, legal_moves))
-        else:
+        else:  # We are at a DEAD-END here
 #             print (tab + "DEAD-END: (({})) ||  Moves: {}".format(depth, legal_moves))
             score, move = self.score(game, self), (-1, -1)
 
@@ -252,44 +248,42 @@ class CustomPlayer:
         floor = alpha
         ceiling = beta
         legal_moves = game.get_legal_moves(game.active_player)
-        if legal_moves and len(legal_moves)>0:
+        if legal_moves is not None and len(legal_moves)>0:
             if depth>0: # Recursive case:
                 if maximizing_player:   # MAXIMIZING ply
 #                     print (tab + "MAXIMIZING: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
-                    score, move = floor, None
+                    score, move = None, None
                     for i,m in enumerate(legal_moves):
                         newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player, tab=tab+'\t')
-                        if newscore is not None:
-                            if (move is None and newscore == score) or newscore > score:
-                                score, floor, move = newscore, newscore, m
-#                                 print (tab + "\tMove {} (Idx: {}): Increased floor ==> {} for remaining siblings".format(m, i, floor))
-                            if score > ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
-#                                 print (tab + "\tMove {} (Idx: {}): Dropping self because ceiling: {} already crossed".format(m, i, ceiling))
-#                                 score, move = None, None
-                                break
-                        else:
-#                             print (tab + "\tMove {} (Idx: {}): Dropping branch".format(m, i))
-                            pass
+                        if score is None or newscore > score:
+                            score, move = newscore, m
+                            
+                        # Alphabeta bookkeeping:
+                        if score > floor:
+                            floor = score   # Constrains children at the next (minimizing) layer to be above this value
+#                             print (tab + "\tMove {} (Idx: {}): Increased floor ==> {} for remaining siblings".format(m, i, floor))
+                        if score > ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
+#                             print (tab + "\tMove {} (Idx: {}): Dropping self because ceiling: {} already crossed".format(m, i, ceiling))
+                            break
                 else:                   # MINIMIZING ply
 #                     print (tab + "MINIMIZING: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
-                    score, move = ceiling, None
+                    score, move = None, None
                     for i,m in enumerate(legal_moves):
                         newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player, tab=tab+'\t')
-                        if newscore is not None:
-                            if (move is None and newscore == score) or newscore < score:
-                                score, ceiling, move = newscore, newscore, m
-#                                 print (tab + "\tMove {} (Idx: {}): Reduced ceiling ==> {} for remaining siblings".format(m, i, ceiling))
-                            if score < floor: # No need to search any more if we've crossed the lower limit at this min layer already
-#                                 print (tab + "\tMove {} (Idx: {}): Dropping self because floor: {} already crossed".format(m, i, floor))
-#                                 score, move = None, None
-                                break
-                        else:
-#                             print (tab + "\tMove {} (Idx: {}): Dropping branch".format(m, i))
-                            pass
+                        if score is None or newscore < score:
+                            score, move = newscore, m
+                            
+                        # Alphabeta bookkeeping:
+                        if score < ceiling:
+                            ceiling = score   # Constrains children at the next (maximizing) layer to be below this value
+#                             print (tab + "\tMove {} (Idx: {}): Reduced ceiling ==> {} for remaining siblings".format(m, i, ceiling))
+                        if score < floor: # No need to search any more if we've crossed the lower limit at this min layer already
+#                             print (tab + "\tMove {} (Idx: {}): Dropping self because floor: {} already crossed".format(m, i, floor))
+                            break
             else: # Base case (depth==0)
                 score, move = self.score(game, self), None
 #                 print (tab + "(BASE): (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
-        else:
+        else: # We are at a DEAD-END here
 #             print (tab + "DEAD-END: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
             score, move = self.score(game, self), (-1, -1)
 
