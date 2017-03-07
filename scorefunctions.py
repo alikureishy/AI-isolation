@@ -122,7 +122,9 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
+    return net_advantage_score(game, player)
 
+def staged_score(game, player):
     # Strategy:
     # - First half: Stay near center + stay away from other
     # - Second half: Stay close + offensive + net_mobility
