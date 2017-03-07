@@ -8,9 +8,10 @@ from collections import namedtuple
 
 from isolation import Board
 from sample_players import RandomPlayer
-from scorefunctions import null_score
+from scorefunctions import null_score, net_mobility_score
 from scorefunctions import open_move_score
 from scorefunctions import improved_score
+from scorefunctions import net_advantage_score
 from scorefunctions import custom_score
 from game_agent import CustomPlayer
 import warnings
@@ -86,6 +87,7 @@ def tryall():
                          int(num_timeouts[player1]), int(num_timeouts[player1])))
 
 def mymain():
+    visualizing = False
 #     mm_null_reg_agent = Agent(CustomPlayer(score_fn=null_score, method='minimax', search_depth=3, iterative=False), "mm_null_reg_agent")
 #     mm_open_reg_agent = Agent(CustomPlayer(score_fn=open_move_score, method='minimax', search_depth=3, iterative=False), "mm_open_reg_agent")
 #     mm_impr_reg_agent = Agent(CustomPlayer(score_fn=improved_score, method='minimax', search_depth=3, iterative=False), "mm_impr_reg_agent")
@@ -99,7 +101,7 @@ def mymain():
 #     ab_impr_id_agent = Agent(CustomPlayer(score_fn=improved_score, method='alphabeta', search_depth=3, iterative=True), "ab_impr_id_agent")
 #     ab_cstm_id_agent = Agent(CustomPlayer(score_fn=custom_score, method='alphabeta', search_depth=3, iterative=True), "ab_cstm_id_agent")
 
-    player1 = Agent(CustomPlayer(score_fn=custom_score, method='alphabeta', search_depth=3, iterative=True), "Custom")
+    player1 = Agent(CustomPlayer(score_fn=net_mobility_score, method='alphabeta', search_depth=3, iterative=True), "Custom")
     player2 = Agent(CustomPlayer(score_fn=improved_score, method='alphabeta', search_depth=3, iterative=True), "Improved")
 
 
@@ -122,16 +124,20 @@ def mymain():
         winner2 = 1 if player1.player == winner2 else 2
         print ("Player {} won game 1. Reason: {}".format(winner1, reason1))
         print ("Player {} won game 2. Reason: {}".format(winner2, reason2))
-        print ("Replaying moves for game 1...")
-        print (moves1)
-        visualizer = Visualizer(player1.name, player2.name, moves1)
-        visualizer.play()
-        visualizer.quit()
-        print ("Replaying moves for game 2...")
-        print (moves2)
-        visualizer = Visualizer(player2.name, player1.name, moves2)
-        visualizer.play()
-        visualizer.quit()
+        
+        if visualizing:
+            print ("Replaying moves for game 1...")
+            print (moves1)
+            visualizer = Visualizer(player1.name, player2.name, moves1)
+            visualizer.play()
+            visualizer.quit()
+            print ("Replaying moves for game 2...")
+            print (moves2)
+            visualizer = Visualizer(player2.name, player1.name, moves2)
+            visualizer.play()
+            visualizer.quit()
 
+        print ("Done")
+        
 if __name__ == "__main__":
     mymain()
