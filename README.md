@@ -176,11 +176,11 @@ With alpha-beta traversal, we are guaranteed the same outcome as minimax, yet wi
 
 Due to the exponential nature of game tree exploration, memory and time constraints can be limiting. It is therefore usually infeasible to explore very deep into the tree on any turn. In this scenario, heuristics to *quantify the advantage that a given board configuration confers to the given player, relative to other board configurations*, can be helpful at approximating the best choice among possible moves for that player.
 
-The effectiveness of the heuristic can be the differentiating factor for winning or losing the game. Different mechanisms have been explored below, with a brief analysis of the performance of each of these heuristics against a set of very simple/primitive heuristics. A `tournament.py` script is used to evaluate this effectiveness by measuring the relative performance of the given heuristic in a round-robin tournament against several other pre-defined heuristics, each using both minimax search and alphabeta pruning (as well as a random player/agent). The heuristic in question, however, is measured using time-limited Iterative Deepening and the custom_score heuristic you wrote.
+The effectiveness of the heuristic can be the differentiating factor for winning or losing the game. Different mechanisms have been explored below, with a brief analysis of the performance of each of these heuristics against a set of simpler heuristics. A `tournament.py` script is used to evaluate this effectiveness. The heuristics being evaluated are powered by alphabeta pruning and time-limited iterative deepening with quiessance, and pitted in a round-robin tournament against the simpler heuristics that in turn are powered by minimax search and alphabeta pruning (but no iterative deepening).
 
-The performance of time-limited iterative deepening search is hardware dependent (faster hardware is expected to search deeper than slower hardware in the same amount of time).  The script controls for these effects by also measuring the baseline performance of an agent called "ID_Improved" that uess Iterative Deepening and the improved_score heuristic from `sample_players.py`.  Your goal is to develop a heuristic such that Student outperforms ID_Improved.
+The performance of time-limited iterative deepening search is hardware dependent (faster hardware is expected to search deeper than slower hardware in the same amount of time). However, performance gains are still expected (and have been achieved). The script analyses these heuristics against a baseline performance of the improved_score heuristic when powered by iterative deepening and alphabeta pruning. The goal, obviously, is to find at least one heuristic to outperform the improved_score() heuristic. This is achieved by the net_advantage_score() heuristic discussed further below.
 
-The tournament opponents are listed below. (See also: sample heuristics and players defined in sample_players.py)
+The tournament opponents are listed below. (See also: scorefunctions.py).
 
 - Random: An agent that randomly chooses a move each turn.
 - MM_Null: CustomPlayer agent using fixed-depth minimax search and the null_score heuristic
@@ -190,7 +190,7 @@ The tournament opponents are listed below. (See also: sample heuristics and play
 - AB_Open: CustomPlayer agent using fixed-depth alpha-beta search and the open_move_score heuristic
 - AB_Improved: CustomPlayer agent using fixed-depth alpha-beta search and the improved_score heuristic
 
-###### Win-Lose score (winlose_score())
+###### Win-Lose score (winlose_score() or null_score())
 
 This scoring only looks at the end game -- i.e, whether the player has actually won or lost. Any other game position returns a score of 0. I wouldn't even call this a heuristic function because any useful information here would require the game tree to be expanded all the way to the end.
 
@@ -289,15 +289,16 @@ Playing Matches:
   Match 6: ID_net_advantage_score vs  AB/5_Open  	Result: 12 to 8
   Match 7: ID_net_advantage_score vs AB/5_Improved 	Result: 13 to 7
 
-
 Results:
 ----------
 ID_net_advantage_score     78.57%
 ```
+**This approach yields the best performance, among the score functions evaluated.**
+
 
 ###### Net-mobility Score (new_mobility_score())
 
-Another version of the advantage-based scores above is to return a fixed score (+/-1 or +/-2), regardless of the actual magnitude of variation, with 1 reflecting a minor advantage/disadvantage, and 2 reflecting a more significant one. The logic here is that any momentary advantage on the present board configuration will likely not be the same on a subsequent move, which might yield a very different mobility score. So, the extent of the advantage might not be as high as with the previous mechanisms, particularly since the adversarial search will likely settle on the highest scoring (but likely transient) alternative from among other alternatives that are better from a longer-term standpoint. *In practice, however, the performance of this approach falls shorter than the 'net advantage' approach above.*
+Another version of the advantage-based scores above is to return a fixed score (+/-1 or +/-2), regardless of the actual magnitude of variation, with 1 reflecting a minor advantage/disadvantage, and 2 reflecting a more significant one. The logic here is that any momentary advantage on the present board configuration will likely not be the same on a subsequent move, which might yield a very different mobility score. So, it assumes that the extent of the any advantage might not be as high as with the previous mechanisms, particularly since the adversarial search will likely settle on the highest scoring (but likely transient) alternative from among other alternatives that are better from a longer-term standpoint. In practice, however, the performance of this heuristic falls short of expectations, as seen below.
 
 ```
     score = winlose_score(game, player)
@@ -341,6 +342,7 @@ Results:
 ID_net_mobility_score     67.86%
 ```
 
+
 ###### Distance-from-center Score (accessibility_score)
 
 The scoring here is based on the distance of the player from the center. It favors the player that stays closer to the center. On its own, it is not a robust enough scoring mechanism, but it might find use alongside others during the initial part of the game, when being closer to the center might offer a longer-term advantage. Later in the game, this mechanism could be dropped, as long as its absence is compensated for by a new mechanism, or a pre-existing scoring mechanism that acquires a greater scoring weightage.
@@ -381,10 +383,11 @@ Results:
 ----------
 ID_accessibility_score     55.71%
 ```
+As expected, this does not yield an impressive performance on its own. See composite score sections for improved performance.
 
 ###### Offensive-position Score (offensive_score())
 
-This score is based on whether the current player is positioned to consume one of the opposing player's positions. This is an offensive tactic, and might be helpful in the later parts of the game.
+This score is based on whether the current player is positioned to consume one of the opposing player's positions. This is an offensive tactic, and might be helpful in the later parts of the game. However, in general it might not be a robust metric on its own, and probably needs another heuristic to be utilized alongside it.
 
 ```
     score = winlose_score(game, player)
@@ -424,9 +427,12 @@ Results:
 ID_offensive_score     50.00%
 ```
 
+As expected, the performance here is not impressive. See composite score sections for improved performance.
+
+
 ###### Proximity score (proximity_score())
 
-This favors keeping the opponent closeby.
+This favors keeping the opponent close, and nothing else. As with some of hte other heuristics above, it does not yield good performance on its own and should be used in conjunction with other scoring heuristics.
 
 ```
     score = winlose_score(game, player)
@@ -460,6 +466,8 @@ Results:
 ----------
 ID_proximity_score     62.14%
 ```
+Note that this competes well with the improved_score() heuristic (10 to 10), and very well against the random player and the winlose_score() heuristic. However, it falls short against the open_moves score heuristic. See composite sections below.
+
 
 ###### Distance-from-open-spaces score (horizon_score())
 
@@ -526,8 +534,11 @@ Results:
 ----------
 ID_combo_netadvantage_nearopponent_score     72.86%
 ```
+This achieves reasonable performance, but needs some score tweaking. WIP.
 
 ###### Phased Scoring
+
+Another approach that is worth attempting at a later date is one wherein the scoring heuristic changes as the game progresses. It starts out less offensive, and increases offensiveness as the game progresses.
 
 **Performance**
 
