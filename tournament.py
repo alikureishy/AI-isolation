@@ -28,11 +28,14 @@ from collections import namedtuple
 
 from isolation import Board
 from sample_players import RandomPlayer
-from scorefunctions import null_score
+from scorefunctions import null_score, accessibility_score, net_mobility_score,\
+    net_advantage_score, proximity_score, offensive_score,\
+    combo_nearcenter_avoidopponent_score,\
+    combo_offensive_nearopponent_netmobility_score,\
+    combo_netadvantage_nearopponent_score
 from scorefunctions import open_move_score
 from scorefunctions import improved_score
 from scorefunctions import custom_score
-from scorefunctions import more_improved_score
 from game_agent import CustomPlayer
 
 
@@ -143,9 +146,10 @@ def main():
     HEURISTICS = [("Null", null_score),
                   ("Open", open_move_score),
                   ("Improved", improved_score)]
-    AB_ARGS = {"search_depth": 5, "method": 'alphabeta', "iterative": False}
-    MM_ARGS = {"search_depth": 3, "method": 'minimax', "iterative": False}
-    CUSTOM_ARGS = {"method": 'alphabeta', 'iterative': True}
+    
+    MM_ARGS =       {"search_depth": 3, "method": 'minimax', "iterative": False}
+    AB_ARGS =       {"search_depth": 5, "method": 'alphabeta', "iterative": False}
+    CUSTOM_ARGS =   {"search_depth": 3, "method": 'alphabeta', 'iterative': True}
 
     # Create a collection of CPU agents using fixed-depth minimax or alpha beta
     # search, or random selection.  The agent names encode the search method
@@ -153,9 +157,9 @@ def main():
     # Open=open_move_score, Improved=improved_score). For example, MM_Open is
     # an agent using minimax search with the open moves heuristic.
     mm_agents = [Agent(CustomPlayer(score_fn=h, **MM_ARGS),
-                       "MM_" + name) for name, h in HEURISTICS]
+                       "MM/3_" + name) for name, h in HEURISTICS]
     ab_agents = [Agent(CustomPlayer(score_fn=h, **AB_ARGS),
-                       "AB_" + name) for name, h in HEURISTICS]
+                       "AB/5_" + name) for name, h in HEURISTICS]
     random_agents = [Agent(RandomPlayer(), "Random")]
 
     # ID_Improved agent is used for comparison to the performance of the
@@ -163,8 +167,18 @@ def main():
     # systems; i.e., the performance of the student agent is considered
     # relative to the performance of the ID_Improved agent to account for
     # faster or slower computers.
-    test_agents = [Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
-                   Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "Student")]
+    test_agents = [
+                    Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_improved_score"),
+                    Agent(CustomPlayer(score_fn=net_advantage_score, **CUSTOM_ARGS), "ID_net_advantage_score"),
+                    Agent(CustomPlayer(score_fn=net_mobility_score, **CUSTOM_ARGS), "ID_net_mobility_score"),
+                    Agent(CustomPlayer(score_fn=offensive_score, **CUSTOM_ARGS), "ID_offensive_score"),
+                    Agent(CustomPlayer(score_fn=accessibility_score, **CUSTOM_ARGS), "ID_accessibility_score"),
+                    Agent(CustomPlayer(score_fn=proximity_score, **CUSTOM_ARGS), "ID_proximity_score"),
+                    Agent(CustomPlayer(score_fn=combo_nearcenter_avoidopponent_score, **CUSTOM_ARGS), "ID_combo_nearcenter_avoidopponent_score"),
+                    Agent(CustomPlayer(score_fn=combo_offensive_nearopponent_netmobility_score, **CUSTOM_ARGS), "ID_combo_offensive_nearopponent_netmobility_score"),
+                    Agent(CustomPlayer(score_fn=combo_netadvantage_nearopponent_score, **CUSTOM_ARGS), "ID_combo_netadvantage_nearopponent_score"),
+                    Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "ID_custom_score")
+                   ]
 
     print(DESCRIPTION)
     for agentUT in test_agents:
