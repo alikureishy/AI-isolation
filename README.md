@@ -4,7 +4,7 @@
 [EndGameOWins]: https://github.com/safdark/isolation/blob/master/docs/images/isolation1.png
 [EndGameXWins]: https://github.com/safdark/isolation/blob/master/docs/images/isolation5.png
 
-![MidGame]
+![EndGameXWins]
 
 # Isolation - Game Playing Agent
 
