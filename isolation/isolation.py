@@ -50,6 +50,7 @@ class Board(object):
         self.__active_player__ = player_1
         self.__inactive_player__ = player_2
         self.__board_state__ = [[Board.BLANK for i in range(width)] for j in range(height)]
+        self.__blank_space_count__ = width * height
         self.__last_player_move__ = {player_1: Board.NOT_MOVED, player_2: Board.NOT_MOVED}
         self.__player_symbols__ = {Board.BLANK: Board.BLANK, player_1: 1, player_2: 2}
 
@@ -100,6 +101,7 @@ class Board(object):
         new_board.__last_player_move__ = copy(self.__last_player_move__)
         new_board.__player_symbols__ = copy(self.__player_symbols__)
         new_board.__board_state__ = deepcopy(self.__board_state__)
+        new_board.__blank_space_count__ = self.__blank_space_count__
         return new_board
 
     def forecast_move(self, move):
@@ -142,6 +144,9 @@ class Board(object):
                0 <= col < self.width and \
                self.__board_state__[row][col] == Board.BLANK
 
+    def get_blank_spaces_count(self):
+        return self.__blank_space_count__
+    
     def get_blank_spaces(self):
         """
         Return a list of the locations that are still available on the board.
@@ -204,6 +209,7 @@ class Board(object):
         self.__board_state__[row][col] = self.__player_symbols__[self.active_player]
         self.__active_player__, self.__inactive_player__ = self.__inactive_player__, self.__active_player__
         self.move_count += 1
+        self.__blank_space_count__ -= 1
 
     def is_winner(self, player):
         """ Test whether the specified player has won the game. """
