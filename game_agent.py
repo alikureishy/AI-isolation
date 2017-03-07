@@ -122,8 +122,8 @@ class CustomPlayer:
                 assert score is not None
                 
             if len (options) > 0:
-                assert not (move is None or move is (-1,-1)), "Move ({}, {}) for '{}/{}' cannot be None or (-1,-1) if options ({}) exist".format(move, score, self.method, self.score_fn, options)
-                assert move in options, "Move ({}, {}) for '{}/{}' not from existing list of moves ({})".format(move, score, self.method, self.score_fn, options)
+                assert not (move is None or move is (-1,-1)), "Move ({}, {}) for '{}/{}' cannot be None or (-1,-1) if options ({}) exist".format(move, score, self.method, self.score, options)
+                assert move in options, "Move ({}, {}) for '{}/{}' not from existing list of moves ({})".format(move, score, self.method, self.score, options)
         except Timeout:
 #             print (".")
             # Handle any actions required at timeout, if necessary
