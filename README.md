@@ -107,27 +107,26 @@ def minimax(self, game, depth, maximizing_player=True):
     ...
     ...
     ...
-    floor = float('-inf')
-    ceiling = float('+inf')
     legal_moves = game.get_legal_moves(game.active_player)
-    if legal_moves and len(legal_moves)>0:
+    if legal_moves is not None and len(legal_moves)>0:
         if depth>0: # Recursive case:
             if maximizing_player:   # MAXIMIZING ply
-                score, move = floor, None
+                score, move = None, None
                 for i,m in enumerate(legal_moves):
                     newscore, _ = self.minimax(game.forecast_move(m), depth-1, maximizing_player=not maximizing_player)
-                    if (move is None and newscore == score) or newscore > score:
+                    if score is None or newscore > score:
                         score, move = newscore, m
             else:                   # MINIMIZING ply
-                score, move = ceiling, None
+                score, move = None, None
                 for i,m in enumerate(legal_moves):
                     newscore, _ = self.minimax(game.forecast_move(m), depth-1, maximizing_player=not maximizing_player)
-                    if (move is None and newscore == score) or newscore < score:
+                    if score is None or newscore < score:
                         score, move = newscore, m
         else: # Base case (depth==0)
             score, move = self.score(game, self), None
-    else:
+    else:  # We are at a DEAD-END here
         score, move = self.score(game, self), (-1, -1)
+
     return score, move
 ```
 
@@ -143,31 +142,39 @@ def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximiz
     floor = alpha
     ceiling = beta
     legal_moves = game.get_legal_moves(game.active_player)
-    if legal_moves and len(legal_moves)>0:
+    if legal_moves is not None and len(legal_moves)>0:
         if depth>0: # Recursive case:
             if maximizing_player:   # MAXIMIZING ply
-                score, move = floor, None
+                score, move = None, None
                 for i,m in enumerate(legal_moves):
                     newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player)
-                    if newscore is not None:
-                        if (move is None and newscore == score) or newscore > score:
-                            score, floor, move = newscore, newscore, m
-                        if score > ceiling: # Prune: Crossed the upper limit at this max layer already
-                            break
+                    if score is None or newscore > score:
+                        score, move = newscore, m
+
+                    # Alphabeta bookkeeping:
+                    if score > floor:
+                        floor = score   # Constrains children at the next (minimizing) layer to be above this value
+                    if score >= ceiling: # No need to search any more if we've crossed the upper limit at this max layer already
+                        break
             else:                   # MINIMIZING ply
-                score, move = ceiling, None
+#                     print (tab + "MINIMIZING: (({})) {} < score < {}  ||  Moves: {}".format(depth, floor, ceiling, legal_moves))
+                score, move = None, None
                 for i,m in enumerate(legal_moves):
                     newscore, _ = self.alphabeta(game.forecast_move(m), depth-1, floor, ceiling, maximizing_player=not maximizing_player)
-                    if newscore is not None:
-                        if (move is None and newscore == score) or newscore < score:
-                            score, ceiling, move = newscore, newscore, m
-                        if score < floor: # Prune: Crossed the lower limit at this min layer already
-                                break
-            else: # Base case (depth==0)
-                score, move = self.score(game, self), None
-        else:
-            score, move = self.score(game, self), (-1, -1)
-        return score, move
+                    if score is None or newscore < score:
+                        score, move = newscore, m
+
+                    # Alphabeta bookkeeping:
+                    if score < ceiling:
+                        ceiling = score   # Constrains children at the next (maximizing) layer to be below this value
+                    if score <= floor: # No need to search any more if we've crossed the lower limit at this min layer already
+                        break
+        else: # Base case (depth==0)
+            score, move = self.score(game, self), None
+    else: # We are at a DEAD-END here
+        score, move = self.score(game, self), (-1, -1)
+
+    return score, move
 ```
 
 With alpha-beta traversal, we are guaranteed the same outcome as minimax, yet without the overhead of exploring every game tree branch.
