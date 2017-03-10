@@ -49,3 +49,5 @@ The key development was the combined use of the MCTS and the networks, as follow
 ## Conclusion
 
 Distributed Alpha Go — running on 1202 CPUs and 176 GPUs — won 4 out of 5 matches against Lee Sedul, all without ever being spoon-fed an evaluation function or set of game strategies, nor using any lookup database with minimax search the way Deep Blue had been programmed. In fact, no Go-specific logic had been programmed into AlphaGo. It learned everything, on its own, by "watching others", and "self-play”. It has been termed the biggest breakthrough in AI thus far.
+
+The implementation of the Isolation game in this repository will, however, has a less ambitious agenda. More specifically, it utilizes a similar approach as did the Deep Blue game agent, such as alpha/beta and minimax tree search, time-limited iterative deepening, quiessant search and a choice of a few evaluation functions of varying efficacy.
