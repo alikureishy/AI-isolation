@@ -25,11 +25,13 @@ But what really made Alpha Go shine is not the Monte Carlo Tree Search, but rath
 - Goal: Predict the next move.
 - Accuracy: 57% accuracy in casual tournaments.
 - Performance: 3ms per response.
+
 *Policy network (Reinforced):* (Copied from 1st network as-is and further trained)
 - Training: Network played itself 1.2 million times
 - Goal: Predict the best move:
 - Accuracy: 85% accuracy against an existing Go playing AI (Pachi). 
 - Performance: 3ms per response.
+
 *Fast Rollout Policy network:*
 - Goal: Fast move. Trimmed down version of above.
 - Performance: 2 micro seconds per response. Much faster.
