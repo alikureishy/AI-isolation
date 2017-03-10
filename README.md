@@ -10,13 +10,13 @@
 
 ## Overview
 
-Isolation is a deterministic, two-player game of perfect information in which the players alternate turns moving a single piece from one cell to another on a board.  Whenever either player occupies a cell, that cell becomes blocked for the remainder of the game.  The first player with no remaining legal moves loses, and the opponent is declared the winner.
+Isolation is a deterministic, two-player game in which the players alternate turns moving a single piece from one cell to another, on a board.  Whenever either player occupies a cell, that cell becomes blocked for the remainder of the game.  The first player with no remaining legal moves loses, and the opponent is declared the winner.
 
 This project is an attempt at building a game playing 'adversarial search' agent for Isolation combining different strategies. Concepts covered in this project include:
 - Building a game tree
 - Minimax search
 - Alphabeta search (optimization of minimax)
-- Iterative deepening
+- Iterative deepening (time-limited)
 - Quiessance search
 - Evaluation functions
 
@@ -26,11 +26,11 @@ Additionally, agents have a fixed time limit each turn to search for the best mo
 
 ## Design
 
-The project is divided into _ sections.
+The project is further divided into components, discussed below.
 
 ### Isolation Board
 
-This component manages the state of the board game, which includes the location of players on the board, the positions that have already been played, the positions that each player can play, and the winning losing players at end game. It has no logic built into it except the ability to determine the set of possible moves for the active player on each turn. The choice of the move however is delegated to the players, which is where the 'intelligence' lies.
+This component manages the state of the board game, which includes the location of players on the board, the positions that have already been played, the positions that each player can play, and the winning/losing player at end game. It has no logic built into it except the ability to determine the set of possible moves for the active player on each turn. The choice of the move however is delegated to the players, which is where the 'intelligence' lies.
 
 ### Visualizer
 
@@ -200,9 +200,9 @@ Due to the exponential nature of game tree exploration, memory and time constrai
 
 The effectiveness of the heuristic can be the differentiating factor for winning or losing the game. Different mechanisms have been explored below, with a brief analysis of the performance of each of these heuristics against a set of simpler heuristics. A `tournament.py` script is used to evaluate this effectiveness. The heuristics being evaluated are powered by alphabeta pruning and time-limited iterative deepening with quiessance, and pitted in a round-robin tournament against the simpler heuristics that in turn are powered by minimax search and alphabeta pruning (but no iterative deepening).
 
-The performance of time-limited iterative deepening search is hardware dependent (faster hardware is expected to search deeper than slower hardware in the same amount of time). However, performance gains are still expected (and have been achieved). The script analyses these heuristics against a baseline performance of the improved_score heuristic when powered by iterative deepening and alphabeta pruning. The goal, obviously, is to find at least one heuristic to outperform the improved_score() heuristic. This is achieved by the net_advantage_score() heuristic discussed further below.
+The performance of time-limited iterative deepening search is hardware dependent (faster hardware is expected to search deeper than slower hardware in the same amount of time). However, performance gains are still expected (and have been achieved). The script analyses these heuristics against a baseline performance of the improved_score() heuristic (termed 'Advantage score' below) when powered by iterative deepening and alphabeta pruning. The goal, obviously, is to find at least one heuristic to outperform the improved_score() heuristic. This is achieved by the net_advantage_score() heuristic, termed 'Net advantage score' further below.
 
-The tournament opponents are listed below. (See also: scorefunctions.py).
+The tournament opponents are listed below. (All scoring functions are present in the file: scorefunctions.py).
 
 - Random: An agent that randomly chooses a move each turn.
 - MM_Null: CustomPlayer agent using fixed-depth minimax search and the null_score heuristic
@@ -409,7 +409,7 @@ As expected, this does not yield an impressive performance on its own. See compo
 
 ###### Offensive-position Score (offensive_score())
 
-This score is based on whether the current player is positioned to consume one of the opposing player's positions. This is an offensive tactic, and might be helpful in the later parts of the game. However, in general it might not be a robust metric on its own, and probably needs another heuristic to be utilized alongside it.
+This score is based on whether the current player is positioned to consume one of the opposing player's positions on the pending turn. However, if it is the other player's turn, the score outcome is the opposite. Therefore, this function favors an offensive tactic which I was hoping could be helpful in the later parts of the game. However, in general it might not be a robust heuristic on its own, and likely requires another heuristic to be utilized alongside it.
 
 ```
     score = winlose_score(game, player)
@@ -454,7 +454,7 @@ As expected, the performance here is not impressive. See composite score section
 
 ###### Proximity score (proximity_score())
 
-This favors keeping the opponent close, and nothing else. As with some of hte other heuristics above, it does not yield good performance on its own and should be used in conjunction with other scoring heuristics.
+This favors keeping the opponent close, and nothing else. As with some of hte other heuristics above, it does not yield good performance on its own and might achieve a better outcome when used in conjunction with other scoring heuristics.
 
 ```
     score = winlose_score(game, player)
@@ -493,9 +493,11 @@ Note that this competes well with the improved_score() heuristic (10 to 10), and
 
 ###### Distance-from-open-spaces score (horizon_score())
 
-This scoring is based on the distance of the player from the open spaces. The goal is to encourage the player to always stay closer, or move towards, parts of the board with more open spaces, so as to avoid getting trapped in a suboptimal region of the board. It helps potentially avoid the *horizon problem*.
+This scoring is based on the distance of the player from the open spaces. The goal is to encourage the player to always stay closer, or move towards, parts of the board with more open spaces, so as to avoid getting trapped in a region of limited mobility, particularly near the middle or end of the game. It helps potentially mitigate (though not entirely eliminate) the *horizon problem*.
 
-It is still a WIP and has therefore note been listed here.
+It is still a WIP and has therefore not been listed here. One challenge is the time comlexity required to process islands of open spaces. Taking the center of mass of the open slots might not achieve the desired result, since the objective is to move directly towards larger clusters. The center of mass might not be located at the right spot.
+
+Unless a very efficient approach to this problem emerges, to identify the reachable open-space islands on the board, I have doubts as to whether this heuristic could be useful. Nevertheless, I felt it might be interesting mentioning it here.
 
 **Performance**
 
@@ -531,6 +533,8 @@ Results:
 ----------
 ID_combo_offensive_nearopponent_netmobility_score     66.43%
 ```
+
+Not particularly bad, though not very impressive either.
 
 ###### Net-advantage + Keeping-opponent-close (combo_netadvantage_nearopponent_score())
 
